@@ -3,7 +3,7 @@ import { publicEnv } from "@/lib/env";
 // Danish application emails. They deliberately contain no health information,
 // no message contents and no payment card details – only a link back to the site.
 
-type Brand = { businessName: string; brandColor: string };
+type Brand = { businessName: string; brandColor: string; coachName?: string };
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -34,7 +34,7 @@ export function membershipConfirmationEmail(brand: Brand, name: string) {
       `Velkommen${name ? `, ${name}` : ""}!`,
       [
         "Dit medlemskab er nu aktivt. Tak fordi du er med.",
-        "Næste skridt er et kort spørgeskema om dine mål, din hverdag og dine erfaringer. Christian bruger dine svar til at lave din personlige træningsplan.",
+        `Næste skridt er et kort spørgeskema om dine mål, din hverdag og dine erfaringer. ${brand.coachName ?? "Christian"} bruger dine svar til at lave din personlige træningsplan.`,
       ],
       { label: "Udfyld spørgeskemaet", path: "/onboarding" },
     ),
@@ -49,7 +49,7 @@ export function trainingPlanEmail(brand: Brand, name: string, updated: boolean) 
       brand,
       subject,
       [
-        `Hej${name ? ` ${name}` : ""}. Christian har ${updated ? "opdateret" : "lavet"} din personlige træningsplan.`,
+        `Hej${name ? ` ${name}` : ""}. ${brand.coachName ?? "Christian"} har ${updated ? "opdateret" : "lavet"} din personlige træningsplan.`,
         "Log ind for at se planen under Min træning.",
       ],
       { label: "Se min træning", path: "/min-traening" },

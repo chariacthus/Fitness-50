@@ -7,14 +7,19 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * Fails open only if the database is unreachable (the action will fail anyway).
  */
 export async function checkRateLimit(key: string, max: number, windowSeconds: number) {
-  const admin = createAdminClient();
-  const { data, error } = await admin.rpc("check_rate_limit", {
-    p_key: key,
-    p_max: max,
-    p_window_seconds: windowSeconds,
-  });
-  if (error) return true;
-  return Boolean(data);
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin.rpc("check_rate_limit", {
+      p_key: key,
+      p_max: max,
+      p_window_seconds: windowSeconds,
+    });
+    if (error) return true;
+    return Boolean(data);
+  } catch {
+    // Missing server key or network failure: fail open – the action itself will fail anyway.
+    return true;
+  }
 }
 
 /** Best-effort client IP for rate limiting anonymous endpoints. */

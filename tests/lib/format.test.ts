@@ -77,11 +77,16 @@ describe("formatMessageTime", () => {
     expect(formatMessageTime("2025-12-24T10:00:00Z", now)).toBe("24. december 2025 kl. 11.00");
   });
 
-  // Known edge cases in src/lib/format.ts ("yesterday" is computed as now − 24 h,
-  // and the year comparison uses UTC). Reported as a shared change; enable when fixed.
-  it.todo("says 'i går' at 23.30 on the day winter time starts (25 October has 25 hours)");
-  it.todo("says 'i går' at 00.30 on the day after summer time starts (29 March has 23 hours)");
-  it.todo("adds the year during the first hour of 1 January (Copenhagen year, not UTC year)");
+  // Calendar-day edge cases around daylight saving time and New Year.
+  it("says 'i går' at 23.30 on the day winter time starts (25 October has 25 hours)", () => {
+    expect(formatMessageTime("2026-10-24T08:00:00Z", new Date("2026-10-25T22:30:00Z"))).toBe("i går kl. 10.00");
+  });
+  it("says 'i går' at 00.30 on the day after summer time starts (29 March has 23 hours)", () => {
+    expect(formatMessageTime("2026-03-29T08:00:00Z", new Date("2026-03-29T22:30:00Z"))).toBe("i går kl. 10.00");
+  });
+  it("adds the year during the first hour of 1 January (Copenhagen year, not UTC year)", () => {
+    expect(formatMessageTime("2026-12-15T09:00:00Z", new Date("2026-12-31T23:30:00Z"))).toBe("15. december 2026 kl. 10.00");
+  });
 });
 
 describe("money and numbers", () => {

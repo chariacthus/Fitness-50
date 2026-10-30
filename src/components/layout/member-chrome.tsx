@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { UNREAD_COUNTS_REFRESH_EVENT } from "@/lib/messages/events";
 import { MemberBottomNav, MemberSidebarNav, MobileNotificationsLink, type NavCounts } from "@/components/layout/member-nav";
 
 function parseCounts(value: unknown): NavCounts | null {
@@ -40,13 +41,18 @@ function useLiveCounts(initial: NavCounts, userId: string) {
     const supabase = createClient();
     const onFocus = () => void refresh();
     window.addEventListener("focus", onFocus);
+    // Pages fire this after marking something as read, so badges update at once.
+    window.addEventListener(UNREAD_COUNTS_REFRESH_EVENT, onFocus);
+    // Unique topic: a channel that is still unsubscribing is otherwise reused
+    // on a fast remount, and the new subscription would be lost silently.
     const channel = supabase
-      .channel(`nav-counts-${userId}`)
+      .channel(`nav-counts-${userId}-${crypto.randomUUID()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, () => void refresh())
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "community_messages" }, () => void refresh())
       .subscribe();
     return () => {
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener(UNREAD_COUNTS_REFRESH_EVENT, onFocus);
       void supabase.removeChannel(channel);
     };
   }, [refresh, userId]);

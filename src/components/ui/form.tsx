@@ -210,6 +210,7 @@ export function ChoiceGroup({ name, legend, type, options, defaultValue, hint, e
                 value={o.value}
                 defaultChecked={selected.has(o.value)}
                 required={type === "radio" ? required : undefined}
+                aria-invalid={error ? true : undefined}
                 className="mt-0.5 h-6 w-6 shrink-0 cursor-pointer accent-[var(--brand)]"
               />
               <span>

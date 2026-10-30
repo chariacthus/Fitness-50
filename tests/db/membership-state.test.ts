@@ -2,7 +2,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   asAnon,
   asService,
-  asUser,
   createAdmin,
   createUser,
   daysFromNow,

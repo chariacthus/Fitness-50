@@ -37,13 +37,15 @@ export function formatTime(value: string | number | Date) {
 /** "i dag kl. 14.05", "i går kl. 09.12" or "3. oktober kl. 10.00" – for message lists. */
 export function formatMessageTime(value: string | number | Date, now: Date = new Date()) {
   const d = toDate(value);
-  const dayKey = (x: Date) =>
-    new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: TIME_ZONE }).format(x);
   const time = formatTime(d);
-  if (dayKey(d) === dayKey(now)) return `i dag kl. ${time}`;
-  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  if (dayKey(d) === dayKey(yesterday)) return `i går kl. ${time}`;
-  const sameYear = d.getUTCFullYear() === now.getUTCFullYear();
+  // Compare Copenhagen calendar days (correct on the 23/25-hour daylight-saving days).
+  const today = todayInCopenhagen(now);
+  const day = todayInCopenhagen(d);
+  if (day === today) return `i dag kl. ${time}`;
+  const [y, m, dd] = today.split("-").map(Number);
+  const yesterday = new Date(Date.UTC(y, m - 1, dd - 1)).toISOString().slice(0, 10);
+  if (day === yesterday) return `i går kl. ${time}`;
+  const sameYear = day.slice(0, 4) === today.slice(0, 4);
   const date = new Intl.DateTimeFormat(LOCALE, {
     day: "numeric",
     month: "long",

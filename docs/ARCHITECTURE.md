@@ -19,7 +19,11 @@ Supabase project, Stripe for payments.
 | Validation | zod 4 |
 
 Cache Components (`cacheComponents`) is **off**. Pages that depend on the
-logged-in user are rendered dynamically. `params`, `searchParams`,
+logged-in user are rendered dynamically. Public marketing pages are
+pre-rendered (`revalidate`) and must not read cookies: they use
+`getSiteSettings()` (cookie-less, cached, expired via `updateTag` on admin
+save), `createPublicClient()`, and the client-side `AuthSwitch` for the
+"Log ind / Min side" buttons. `params`, `searchParams`,
 `cookies()` and `headers()` are async (Promises) in Next.js 16.
 `middleware` is called `proxy` (`src/proxy.ts`).
 
@@ -38,6 +42,13 @@ All access decisions are made in the database:
   flag, suspension, review status, message authorship, …).
 - Internal functions (prefixed `_`, plus `bootstrap_admin`, `check_rate_limit`)
   are not executable by `anon`/`authenticated`.
+- **Function privileges:** functions in `public` are NOT executable by
+  PUBLIC/anon (Postgres grants EXECUTE to PUBLIC by default, so every
+  migration that creates a function must `revoke execute on function
+  public.<fn>(...) from public, anon;` and grant explicitly). Only `is_admin()`
+  and `is_entitled()` are granted to anon. `tests/db/visitors.test.ts` fails and
+  names any function that breaks this.
+- Message `created_at` is always set by the server (trigger), never the client.
 
 Hiding a button is never the protection – the database policy is.
 
@@ -69,6 +80,11 @@ Hiding a button is never the protection – the database policy is.
 | `src/lib/stripe/client.ts` | `getStripe()` (null when not configured) |
 | `src/lib/server-env.ts` | Server secrets + `isStripeConfigured()`, `isStripeTestMode()`, `isEmailConfigured()` |
 | `src/lib/onboarding/schema.ts` | Onboarding step schemas, option labels, `describeAnswers()` |
+| `src/lib/public-data.ts` | Cookie-less client for public data (lets public pages be pre-rendered) |
+| `src/lib/messages/links.ts` | `safeRelativeLink()`, `newConversationHref()` |
+| `src/lib/messages/report-server.ts` | `submitReport()` |
+| `src/lib/messages/events.ts` | `requestUnreadCountsRefresh()` – refreshes nav badges after "mark as read" |
+| `src/lib/auth-flow/draft.ts` | `useFormDraft()` – keeps non-secret form fields in localStorage |
 
 UI kit (`src/components/ui/*`): `Button`, `ButtonLink`, `SubmitButton`,
 `TextField`, `TextareaField`, `SelectField`, `CheckboxField`, `ChoiceGroup`,
@@ -112,10 +128,14 @@ Member (`src/app/(member)`, login required): `/hjem`, `/faellesskab`,
 Admin (`src/app/admin`, admin only): `/admin`, `/admin/medlemmer`,
 `/admin/medlemmer/[id]`, `/admin/onboarding`, `/admin/onboarding/[id]`,
 `/admin/beskeder`, `/admin/traeningsplaner`, `/admin/traeningsplaner/ny`,
-`/admin/traeningsplaner/[id]`, `/admin/kostplaner`, `/admin/kostplaner/ny`,
-`/admin/kostplaner/[id]`, `/admin/opslag`, `/admin/opslag/ny`,
+`/admin/traeningsplaner/[id]`, `/admin/traeningsplaner/[id]/forhaandsvisning`,
+`/admin/kostplaner`, `/admin/kostplaner/ny`, `/admin/kostplaner/[id]`,
+`/admin/kostplaner/[id]/forhaandsvisning`, `/admin/opslag`, `/admin/opslag/ny`,
 `/admin/opslag/[id]`, `/admin/rapporter`, `/admin/betalinger`,
 `/admin/anmodninger`, `/admin/kontakt`, `/admin/produkter`, `/admin/indstillinger`.
+
+Development only: `/promo` (promotional film; 404 in production, rendered to
+MP4 with `scripts/record-promo.mjs`).
 
 API: `/api/webhooks/stripe` (POST, signature-verified),
 `/api/membership/status` (GET, for the checkout confirmation page),
