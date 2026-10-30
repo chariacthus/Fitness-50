@@ -13,7 +13,6 @@ const PROTECTED_PREFIXES = [
   "/opslag",
   "/onboarding",
   "/medlemmer",
-  "/bliv-medlem",
   "/admin",
 ];
 
