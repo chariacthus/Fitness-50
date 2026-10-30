@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
-import { CommunityIcon, HomeIcon, MessageIcon, ProfileIcon, TrainingIcon } from "@/components/icons";
 import { getSiteSettings } from "@/lib/settings";
 import { renewalPhrase } from "@/components/public/copy";
 import { CtaBand } from "@/components/public/cta-band";
@@ -23,37 +21,32 @@ export default async function HowItWorksPage() {
   const coach = settings.coach_name;
   const renewal = renewalPhrase(products.memberships[0]?.billing_interval);
 
-  const areas: { title: string; text: string; icon: ReactNode }[] = [
+  const areas: { title: string; text: string }[] = [
     {
       title: "Hjem",
       text: `Dit overblik med det vigtigste lige nu – blandt andet nyt fra ${coach}.`,
-      icon: <HomeIcon className="h-7 w-7" />,
     },
     {
       title: "Fællesskab",
       text: "Den fælles chat og opslag, hvor medlemmerne deler erfaringer og spørgsmål.",
-      icon: <CommunityIcon className="h-7 w-7" />,
     },
     {
       title: "Beskeder",
       text: `Private beskeder med ${coach} og med andre medlemmer.`,
-      icon: <MessageIcon className="h-7 w-7" />,
     },
     {
       title: "Min træning",
       text: "Din personlige træningsplan – og din kostplan, hvis du har købt en.",
-      icon: <TrainingIcon className="h-7 w-7" />,
     },
     {
       title: "Min profil",
       text: "Dine oplysninger, dit medlemskab, dine samtykker og opsigelse.",
-      icon: <ProfileIcon className="h-7 w-7" />,
     },
   ];
 
   return (
     <>
-      <PageIntro title="Sådan fungerer det" eyebrow="Forløbet">
+      <PageIntro title="Sådan fungerer det">
         <p>
           Fra du melder dig ind, til du træner efter din egen plan – her er hele forløbet, trin for trin. Du skal ikke kunne
           noget på forhånd.
@@ -110,18 +103,12 @@ export default async function HowItWorksPage() {
 
       <Section labelledBy="omraader-titel">
         <SectionHeading id="omraader-titel" title="Det ser du, når du er logget ind">
-          <p>Medlemsområdet har fem faste punkter i menuen, så det er let at finde rundt.</p>
         </SectionHeading>
         <ul role="list" className="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
           {areas.map((area) => (
-            <li key={area.title} className="flex gap-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-strong">
-                {area.icon}
-              </span>
-              <div>
-                <h3 className="text-xl font-semibold">{area.title}</h3>
-                <p className="mt-1 text-lg text-ink-soft">{area.text}</p>
-              </div>
+            <li key={area.title} className="border-t border-line pt-4">
+              <h3 className="text-xl font-semibold">{area.title}</h3>
+              <p className="mt-1 text-lg text-ink-soft">{area.text}</p>
             </li>
           ))}
         </ul>

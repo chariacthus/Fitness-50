@@ -1,5 +1,3 @@
-import { PlaceIllustration } from "@/components/public/illustrations";
-
 const PLACES = [
   {
     key: "home",
@@ -18,19 +16,14 @@ const PLACES = [
   },
 ] as const;
 
-/** Home / gym / outdoors with a simple line illustration each. */
+/** Home / gym / outdoors – plain columns. */
 export function TrainingPlaces() {
   return (
-    <ul role="list" className="grid gap-6 md:grid-cols-3">
+    <ul role="list" className="grid gap-10 md:grid-cols-3">
       {PLACES.map((place) => (
-        <li key={place.title} className="overflow-hidden rounded-xl border border-line bg-surface">
-          <div className="border-b border-line bg-brand-soft px-8 pt-8 pb-4">
-            <PlaceIllustration name={place.key} />
-          </div>
-          <div className="p-6">
-            <h3 className="font-display text-2xl">{place.title}</h3>
-            <p className="mt-2 text-lg text-ink-soft">{place.text}</p>
-          </div>
+        <li key={place.title} className="border-t-2 border-ink pt-5">
+          <h3 className="font-display text-2xl">{place.title}</h3>
+          <p className="mt-2 text-lg text-ink-soft">{place.text}</p>
         </li>
       ))}
     </ul>

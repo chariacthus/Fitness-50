@@ -21,10 +21,9 @@ function PriceLine({ product }: { product: PublicProduct }) {
   );
 }
 
-function ProductHeader({ product, eyebrow }: { product: PublicProduct; eyebrow?: string }) {
+function ProductHeader({ product }: { product: PublicProduct }) {
   return (
     <div className="space-y-2">
-      {eyebrow ? <p className="font-semibold text-brand">{eyebrow}</p> : null}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <h3 id={`produkt-${product.slug}`} className="font-display text-3xl">
           {product.name}
@@ -64,7 +63,7 @@ export function MembershipCard({ product }: { product: PublicProduct }) {
 export function NutritionCard({ product }: { product: PublicProduct }) {
   return (
     <article id="kostplan" aria-labelledby={`produkt-${product.slug}`} className="scroll-mt-24 space-y-6 rounded-xl border border-line bg-surface p-6 sm:p-10">
-      <ProductHeader product={product} eyebrow="Tilkøb" />
+      <ProductHeader product={product} />
       <PriceLine product={product} />
       {product.features.length > 0 ? <FeatureList items={product.features} /> : null}
       <div className="space-y-2 border-t border-line pt-5">

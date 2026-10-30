@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BellIcon, CommunityIcon, HomeIcon, MessageIcon, ProfileIcon, SettingsIcon, TrainingIcon } from "@/components/icons";
+import { CommunityIcon, HomeIcon, MessageIcon, ProfileIcon, TrainingIcon } from "@/components/icons";
 import { CountBadge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/cn";
 
@@ -27,7 +27,7 @@ export function MemberSidebarNav({ counts, isAdmin }: { counts: NavCounts; isAdm
   const pathname = usePathname();
   return (
     <nav aria-label="Hovedmenu" className="space-y-1">
-      {ITEMS.map(({ href, label, Icon, count }) => {
+      {ITEMS.map(({ href, label, count }) => {
         const active = isActive(pathname, href);
         return (
           <Link
@@ -39,7 +39,6 @@ export function MemberSidebarNav({ counts, isAdmin }: { counts: NavCounts; isAdm
               active ? "bg-brand text-white" : "text-ink hover:bg-muted",
             )}
           >
-            <Icon />
             <span className="flex-1">{label}</span>
             {count ? <CountBadge count={counts[count]} label={COUNT_LABELS[count]} /> : null}
           </Link>
@@ -53,7 +52,6 @@ export function MemberSidebarNav({ counts, isAdmin }: { counts: NavCounts; isAdm
           isActive(pathname, "/notifikationer") ? "bg-brand text-white" : "text-ink hover:bg-muted",
         )}
       >
-        <BellIcon />
         <span className="flex-1">Notifikationer</span>
         <CountBadge count={counts.notifications} label={COUNT_LABELS.notifications} />
       </Link>
@@ -62,7 +60,6 @@ export function MemberSidebarNav({ counts, isAdmin }: { counts: NavCounts; isAdm
           href="/admin"
           className="mt-4 flex min-h-12 items-center gap-3 rounded-md border-2 border-brand px-3 text-lg font-semibold text-brand hover:bg-brand-soft"
         >
-          <SettingsIcon />
           <span>Administration</span>
         </Link>
       ) : null}
@@ -111,7 +108,6 @@ export function MemberBottomNav({ counts }: { counts: NavCounts }) {
 export function MobileNotificationsLink({ count }: { count: number }) {
   return (
     <Link href="/notifikationer" className="inline-flex min-h-11 items-center gap-2 rounded-md px-2 font-semibold text-ink hover:bg-muted">
-      <BellIcon />
       <span>Notifikationer</span>
       <CountBadge count={count} label={COUNT_LABELS.notifications} />
     </Link>

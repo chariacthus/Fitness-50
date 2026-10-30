@@ -20,8 +20,7 @@ export default async function FaqPage() {
 
   return (
     <>
-      <PageIntro title="Ofte stillede spørgsmål" eyebrow="Spørgsmål og svar">
-        <p>Tryk på et spørgsmål for at se svaret.</p>
+      <PageIntro title="Ofte stillede spørgsmål">
       </PageIntro>
 
       <Section tone="surface" size="narrow" labelledBy="spoergsmaal-titel">

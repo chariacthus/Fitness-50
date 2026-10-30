@@ -17,15 +17,14 @@ export function CheckIcon({ className }: { className?: string }) {
   );
 }
 
-/** Plain list of features with a check mark in front of each line. */
+/** Plain list of features separated by thin lines. */
 export function FeatureList({ items, columns = 1, className }: { items: string[]; columns?: 1 | 2; className?: string }) {
   if (items.length === 0) return null;
   return (
-    <ul role="list" className={cn("grid gap-x-10 gap-y-4", columns === 2 && "md:grid-cols-2", className)}>
+    <ul role="list" className={cn("grid gap-x-10 border-t border-line", columns === 2 && "md:grid-cols-2", className)}>
       {items.map((item) => (
-        <li key={item} className="flex gap-3 text-lg">
-          <CheckIcon className="mt-0.5 text-brand" />
-          <span>{item}</span>
+        <li key={item} className="border-b border-line py-3 text-lg">
+          {item}
         </li>
       ))}
     </ul>

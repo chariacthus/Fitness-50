@@ -5,7 +5,7 @@ import { getSiteSettings, placeholder } from "@/lib/settings";
 import { CtaBand } from "@/components/public/cta-band";
 import { FeatureList } from "@/components/public/feature-list";
 import { PlaceholderNote, SettingText } from "@/components/public/placeholder-text";
-import { Eyebrow, Section, SectionHeading } from "@/components/public/section";
+import { Section, SectionHeading } from "@/components/public/section";
 import { SiteImage } from "@/components/public/site-image";
 
 // Pre-rendered and refreshed every 5 minutes (no per-visitor data on this page).
@@ -28,7 +28,6 @@ export default async function AboutCoachPage() {
       <div className="border-b border-line bg-brand-soft py-16 sm:py-24">
         <Container className="grid items-start gap-12 lg:grid-cols-[2fr_3fr]">
           <div className="space-y-6">
-            <Eyebrow>Din træner</Eyebrow>
             <h1 className="text-5xl leading-[1.05] sm:text-6xl">Mød {coach}</h1>
             <SettingText value={settings.coach_bio} label={`Præsentation af ${coach}`} className="max-w-prose text-xl" />
             <div className="flex flex-wrap gap-3 pt-2">

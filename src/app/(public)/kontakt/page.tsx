@@ -48,11 +48,8 @@ export default async function ContactPage() {
 
   return (
     <>
-      <PageIntro title="Kontakt" eyebrow={`Skriv til ${coach}`}>
-        <p>
-          Har du spørgsmål til medlemskabet, eller vil du høre, om det passer til dig? Skriv en besked her, så får{" "}
-          {coach} den direkte.
-        </p>
+      <PageIntro title="Kontakt">
+        <p>Skriv en besked, så får {coach} den direkte.</p>
       </PageIntro>
 
       <Section tone="surface" labelledBy="formular-titel">

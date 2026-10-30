@@ -14,7 +14,7 @@ export function AdminShell({ viewer, settings, children }: { viewer: Viewer; set
         <div className="mb-2 px-3">
           <Logo name={settings.business_name} logoPath={settings.logo_path} href="/admin" />
         </div>
-        <p className="mb-6 px-3 text-sm font-bold uppercase tracking-wide text-ink-soft">Administration</p>
+        <p className="mb-6 px-3 text-ink-soft">Administration</p>
         <AdminSidebarNav />
         <div className="mt-auto space-y-2 border-t border-line pt-4">
           <div className="px-3">

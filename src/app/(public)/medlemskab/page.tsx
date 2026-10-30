@@ -92,7 +92,7 @@ export default async function MembershipPage() {
 
   return (
     <>
-      <PageIntro title="Medlemskab og priser" eyebrow="Medlemskab">
+      <PageIntro title="Medlemskab og priser">
         <p>
           {!isPlaceholderText(settings.membership_description)
             ? settings.membership_description
@@ -148,7 +148,7 @@ export default async function MembershipPage() {
       {nutrition ? (
         <Section tone="surface" labelledBy="kostplan-titel">
           <div className="grid items-start gap-12 lg:grid-cols-2">
-            <SectionHeading id="kostplan-titel" eyebrow="Tilkøb" title="Personlig kostplan">
+            <SectionHeading id="kostplan-titel" title="Personlig kostplan">
               {nutritionText ? <p className="whitespace-pre-line">{nutritionText}</p> : null}
               <p>
                 Kostplanen er frivillig og kræver et medlemskab. {coach} laver den personligt ud fra dine svar.
