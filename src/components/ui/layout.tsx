@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn } from "@/components/ui/cn";
+import { Contours } from "@/components/ui/decor";
 
 export function Container({ children, className, size = "default" }: { children: ReactNode; className?: string; size?: "default" | "narrow" | "wide" }) {
   return (
@@ -85,13 +86,22 @@ export function ImagePlaceholder({ label, className }: { label: string; classNam
       role="img"
       aria-label={`Pladsholder: ${label}`}
       className={cn(
-        "flex aspect-[4/3] w-full items-center justify-center rounded-lg border-2 border-dashed border-line-strong bg-muted p-6 text-center text-ink-soft",
+        "relative flex aspect-[4/3] w-full items-start overflow-hidden rounded-xl bg-brand-soft p-5 text-brand-strong ring-1 ring-brand-line",
         className,
       )}
     >
-      <span>
-        <span className="block text-sm font-bold uppercase tracking-wide">Pladsholder</span>
-        <span className="mt-1 block">{label}</span>
+      <Contours className="text-brand/25" />
+      <div aria-hidden="true" className="absolute inset-0 flex items-center justify-center">
+        <span className="flex h-20 w-20 items-center justify-center rounded-full bg-surface/80 text-brand shadow-sm">
+          <svg viewBox="0 0 24 24" className="h-9 w-9" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
+            <circle cx="12" cy="13" r="3.5" />
+          </svg>
+        </span>
+      </div>
+      <span className="relative rounded-md bg-surface/90 px-3 py-2 text-left shadow-sm">
+        <span className="block text-xs font-bold uppercase tracking-widest text-ink-soft">Pladsholder · foto kommer</span>
+        <span className="block font-semibold text-ink">{label}</span>
       </span>
     </div>
   );

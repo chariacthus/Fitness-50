@@ -15,7 +15,7 @@ function PriceLine({ product }: { product: PublicProduct }) {
   }
   return (
     <p className="flex flex-wrap items-baseline gap-x-2">
-      <span className="text-4xl font-bold tracking-tight">{formatDKK(product.price_amount)}</span>
+      <span className="font-display text-5xl tracking-tight">{formatDKK(product.price_amount)}</span>
       <span className="text-lg text-ink-soft">{formatInterval(product.billing_interval)}</span>
     </p>
   );
@@ -26,7 +26,7 @@ function ProductHeader({ product, eyebrow }: { product: PublicProduct; eyebrow?:
     <div className="space-y-2">
       {eyebrow ? <p className="font-semibold text-brand">{eyebrow}</p> : null}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <h3 id={`produkt-${product.slug}`} className="text-2xl font-bold">
+        <h3 id={`produkt-${product.slug}`} className="font-display text-3xl">
           {product.name}
         </h3>
         {product.is_test ? <Badge tone="warning">Testpris – ikke endelig</Badge> : null}
@@ -38,7 +38,10 @@ function ProductHeader({ product, eyebrow }: { product: PublicProduct; eyebrow?:
 
 export function MembershipCard({ product }: { product: PublicProduct }) {
   return (
-    <article aria-labelledby={`produkt-${product.slug}`} className="space-y-6 rounded-lg border-2 border-brand bg-surface p-6 sm:p-8">
+    <article
+      aria-labelledby={`produkt-${product.slug}`}
+      className="space-y-6 rounded-xl border border-line bg-surface p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-12px_rgba(31,36,33,0.18)] ring-2 ring-brand sm:p-10"
+    >
       <ProductHeader product={product} />
       <PriceLine product={product} />
       {product.features.length > 0 ? (
@@ -60,7 +63,7 @@ export function MembershipCard({ product }: { product: PublicProduct }) {
 
 export function NutritionCard({ product }: { product: PublicProduct }) {
   return (
-    <article id="kostplan" aria-labelledby={`produkt-${product.slug}`} className="scroll-mt-6 space-y-6 rounded-lg border border-line-strong bg-surface p-6 sm:p-8">
+    <article id="kostplan" aria-labelledby={`produkt-${product.slug}`} className="scroll-mt-24 space-y-6 rounded-xl border border-line bg-surface p-6 sm:p-10">
       <ProductHeader product={product} eyebrow="Tilkøb" />
       <PriceLine product={product} />
       {product.features.length > 0 ? <FeatureList items={product.features} /> : null}

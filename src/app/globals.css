@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@fontsource-variable/source-sans-3";
+@import "@fontsource-variable/fraunces/full.css";
 
 /*
  * Stærk50 design tokens. Light, warm and high-contrast by design (target
@@ -15,7 +16,13 @@
   --color-brand-soft: color-mix(in srgb, var(--brand) 10%, white);
   --color-brand-line: color-mix(in srgb, var(--brand) 35%, white);
 
-  --color-canvas: #faf8f4;
+  --color-canvas: #f7f4ee;
+  --color-sand: #ece5d6;
+  /* Deep olive-charcoal for hero, closing call to action and footer. */
+  --color-night: color-mix(in srgb, var(--brand) 32%, #0f120d);
+  --color-on-night: #f5f2ea;
+  --color-on-night-soft: #cfd1c4;
+  --color-accent-light: color-mix(in srgb, var(--brand) 35%, #f1ecd9);
   --color-surface: #ffffff;
   --color-muted: #f2efe8;
   --color-line: #dcd6ca;
@@ -34,6 +41,7 @@
   --color-focus: #1d4f91;
 
   --font-sans: "Source Sans 3 Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-display: "Fraunces Variable", Georgia, "Times New Roman", serif;
 }
 
 /* 18px base: every rem-based size (text, spacing, touch targets) scales with it. */
@@ -47,6 +55,16 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
   line-height: 1.6;
+}
+
+/* Warm editorial serif for page and section headings. */
+h1,
+h2,
+.font-display {
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 50, "WONK" 0;
+  font-weight: 620;
+  letter-spacing: -0.015em;
 }
 
 /* Visible focus for keyboard users everywhere. */

@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ComponentProps } from "react";
 import { cn } from "@/components/ui/cn";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "inverse" | "inverseOutline";
 export type ButtonSize = "md" | "lg" | "sm";
 
 const base =
@@ -13,6 +13,9 @@ const variants: Record<ButtonVariant, string> = {
   secondary: "border-2 border-brand bg-surface text-brand hover:bg-brand-soft",
   ghost: "text-ink hover:bg-muted underline-offset-4",
   danger: "bg-danger text-white hover:bg-[color-mix(in_srgb,var(--color-danger)_85%,black)]",
+  // For dark (night) sections.
+  inverse: "bg-on-night text-ink hover:bg-white",
+  inverseOutline: "border-2 border-on-night/70 text-on-night hover:bg-white/10",
 };
 
 // All sizes keep at least a 44px touch target; md/lg are 48px+.

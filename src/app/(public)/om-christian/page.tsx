@@ -5,7 +5,7 @@ import { getSiteSettings, placeholder } from "@/lib/settings";
 import { CtaBand } from "@/components/public/cta-band";
 import { FeatureList } from "@/components/public/feature-list";
 import { PlaceholderNote, SettingText } from "@/components/public/placeholder-text";
-import { Section, SectionHeading } from "@/components/public/section";
+import { Eyebrow, Section, SectionHeading } from "@/components/public/section";
 import { SiteImage } from "@/components/public/site-image";
 
 export const dynamic = "force-dynamic";
@@ -24,11 +24,11 @@ export default async function AboutCoachPage() {
 
   return (
     <>
-      <div className="bg-canvas py-14 sm:py-20">
+      <div className="border-b border-line bg-brand-soft py-16 sm:py-24">
         <Container className="grid items-start gap-12 lg:grid-cols-[2fr_3fr]">
           <div className="space-y-6">
-            <p className="text-lg font-semibold text-brand">Din træner</p>
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Mød {coach}</h1>
+            <Eyebrow>Din træner</Eyebrow>
+            <h1 className="text-5xl leading-[1.05] sm:text-6xl">Mød {coach}</h1>
             <SettingText value={settings.coach_bio} label={`Præsentation af ${coach}`} className="max-w-prose text-xl" />
             <div className="flex flex-wrap gap-3 pt-2">
               <ButtonLink href="/bliv-medlem" size="lg">
@@ -43,7 +43,7 @@ export default async function AboutCoachPage() {
             path={settings.coach_photo_path}
             alt={`Foto af ${coach}`}
             placeholderLabel={`Portrætfoto af ${coach}`}
-            className="lg:order-first lg:aspect-[4/5]"
+            className="rounded-2xl bg-surface lg:order-first lg:aspect-[4/5]"
             priority
           />
         </Container>

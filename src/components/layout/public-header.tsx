@@ -19,7 +19,7 @@ export async function PublicHeader() {
     item.href === "/om-christian" ? { ...item, label: `Om ${settings.coach_name}` } : item,
   );
   return (
-    <header className="border-b border-line bg-surface">
+    <header className="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/85">
       <Container className="flex min-h-20 items-center justify-between gap-4">
         <Logo name={settings.business_name} logoPath={settings.logo_path} />
 

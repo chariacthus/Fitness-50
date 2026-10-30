@@ -912,6 +912,8 @@ begin
 end;
 $$;
 
+-- Removes a same-named trigger left by Supabase starter templates.
+drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
@@ -930,6 +932,7 @@ begin
 end;
 $$;
 
+drop trigger if exists on_auth_user_email_changed on auth.users;
 create trigger on_auth_user_email_changed
   after update of email on auth.users
   for each row execute function public.handle_user_email_change();
@@ -2295,4 +2298,17 @@ begin
   end if;
 end;
 $$;
-alter publication supabase_realtime add table public.community_messages, public.private_messages, public.notifications;
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['community_messages', 'private_messages', 'notifications'] loop
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t
+    ) then
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    end if;
+  end loop;
+end;
+$$;

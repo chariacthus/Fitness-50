@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { dbErrorMessage, fail } from "@/lib/action-result";
-import { getViewer } from "@/lib/auth";
+import { getViewer, type Viewer } from "@/lib/auth";
 import type { Json, TablesUpdate } from "@/lib/database.types";
 import { genericNoticeEmail, sendEmail } from "@/lib/email";
 import { onboardingAnswersSchema } from "@/lib/onboarding/schema";
@@ -36,11 +36,11 @@ const stepNumberSchema = z.coerce.number().int().min(1).max(STEP_COUNT - 1);
 const CHECK_FIELDS = "Nogle svar mangler eller skal rettes. Se de markerede felter.";
 const SAVE_FAILED = "Dine svar kunne ikke gemmes. Prøv igen.";
 
-async function entitledViewer() {
+async function entitledViewer(): Promise<{ viewer: Viewer } | { error: string }> {
   const viewer = await getViewer();
-  if (!viewer) return { error: "Du er ikke logget ind længere. Log ind igen, og prøv igen." } as const;
-  if (!viewer.isEntitled) return { error: "Du skal have et aktivt medlemskab for at udfylde spørgeskemaet." } as const;
-  return { viewer } as const;
+  if (!viewer) return { error: "Du er ikke logget ind længere. Log ind igen, og prøv igen." };
+  if (!viewer.isEntitled) return { error: "Du skal have et aktivt medlemskab for at udfylde spørgeskemaet." };
+  return { viewer };
 }
 
 function revalidateMemberPages() {
@@ -105,8 +105,9 @@ export async function saveStep(_prev: StepFormState, formData: FormData): Promis
     const consent = result.data.health_consent === true;
     const text = typeof result.data.health_info === "string" ? result.data.health_info.trim() : "";
     patch.health_consent = consent;
-    // Without consent nothing is stored (the database also enforces this).
-    patch.health_info = consent && text ? text : null;
+    // Without consent nothing is stored (the database also enforces this and
+    // clears the text when consent is withdrawn). A skipped field is left as it was.
+    if (!result.skipped.includes("health_info")) patch.health_info = consent && text ? text : null;
   }
   if (nutrition?.ok) {
     patch.nutrition_answers = mergeAnswers(existing?.nutrition_answers, NUTRITION_FIELDS, nutrition.data, nutrition.skipped) as Json;
@@ -151,7 +152,7 @@ export async function saveStep(_prev: StepFormState, formData: FormData): Promis
 }
 
 /** Sends the finished questionnaire to the coach. The database trigger notifies administrators in-app. */
-export async function submitOnboarding(_prev: SubmitFormState): Promise<SubmitFormState> {
+export async function submitOnboarding(): Promise<SubmitFormState> {
   const auth = await entitledViewer();
   if ("error" in auth) return fail(auth.error);
   const { viewer } = auth;
