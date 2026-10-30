@@ -3,7 +3,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
-import { firstParam } from "@/lib/admin/forms";
+import { firstParam, isUuid } from "@/lib/admin/forms";
 import { memberDisplayName } from "@/lib/admin/members";
 import { loadNames } from "@/lib/admin/queries";
 import { ActionForm } from "@/components/admin/action-form";
@@ -29,6 +29,7 @@ export default async function AdminContactPage({ searchParams }: { searchParams:
   await requireAdmin("/admin/kontakt");
   const params = await searchParams;
   const filter = FILTERS.find((f) => f.value === firstParam(params.vis)) ?? FILTERS[0];
+  const handledParam = firstParam(params.haandteret);
   const supabase = await createClient();
 
   let query = supabase
@@ -39,7 +40,12 @@ export default async function AdminContactPage({ searchParams }: { searchParams:
   if (filter.value === "") query = query.is("handled_at", null);
   if (filter.value === "haandterede") query = query.not("handled_at", "is", null);
 
-  const { data, error } = await query;
+  const [{ data, error }, { data: justHandled }] = await Promise.all([
+    query,
+    isUuid(handledParam)
+      ? supabase.from("contact_messages").select("name, handled_at").eq("id", handledParam).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
   const rows = data ?? [];
   const names = await loadNames(
     supabase,
@@ -49,6 +55,12 @@ export default async function AdminContactPage({ searchParams }: { searchParams:
   return (
     <div className="space-y-8">
       <PageHeader title="Kontaktbeskeder" description="Beskeder sendt via kontaktformularen på hjemmesiden. Den nyeste står øverst." />
+
+      {justHandled?.handled_at ? (
+        <Alert tone="success" title={null}>
+          Beskeden fra {justHandled.name} er markeret som håndteret.
+        </Alert>
+      ) : null}
 
       <nav aria-label="Vis kontaktbeskeder" className="flex flex-wrap gap-2">
         {FILTERS.map((f) => {
@@ -129,7 +141,7 @@ export default async function AdminContactPage({ searchParams }: { searchParams:
                     {m.handled_by ? ` af ${memberDisplayName(names.get(m.handled_by), "en administrator")}` : ""}.
                   </p>
                 ) : (
-                  <ActionForm action={markContactHandled} hidden={{ id: m.id }} pendingText="Gemmer…" className="space-y-3 border-t border-line pt-4">
+                  <ActionForm action={markContactHandled} hidden={{ id: m.id, vis: filter.value }} pendingText="Gemmer…" className="space-y-3 border-t border-line pt-4">
                     <SubmitButton variant="secondary">
                       Markér som håndteret<span className="sr-only">: besked fra {m.name}</span>
                     </SubmitButton>

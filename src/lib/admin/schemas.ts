@@ -44,7 +44,7 @@ export const newTrainingPlanSchema = z.object({
 });
 
 export const sessionSchema = z.object({
-  title: requiredText(160, "Titlen", "Skriv en titel på træningsdagen, f.eks. \"Styrke – hele kroppen\"."),
+  title: requiredText(160, "Titlen", "Skriv en titel på træningsdagen, f.eks. “Styrke – hele kroppen”."),
   day_label: optionalText(60, "Dagen"),
   description: optionalText(4000, "Beskrivelsen"),
 });
@@ -141,7 +141,7 @@ export const siteSettingsSchema = z.object({
   business_name: requiredText(80, "Navnet", "Skriv forretningens navn."),
   slogan: optionalText(160, "Sloganet"),
   coach_name: requiredText(80, "Navnet", "Skriv trænerens navn."),
-  coach_badge_label: requiredText(60, "Mærkaten", "Skriv teksten på trænermærket, f.eks. \"Christian · Træner\"."),
+  coach_badge_label: requiredText(60, "Mærkaten", "Skriv teksten på trænermærket, f.eks. “Navn · Træner”."),
   coach_short_bio: optionalText(600, "Den korte præsentation"),
   coach_bio: optionalText(6000, "Præsentationen"),
   contact_email: optionalEmail,

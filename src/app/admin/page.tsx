@@ -8,6 +8,7 @@ import { safeInternalLink } from "@/lib/training/display";
 import { memberDisplayName } from "@/lib/admin/members";
 import { markAdminNotificationsRead } from "@/lib/admin/overview-actions";
 import { OVERVIEW_FIGURES, parseOverviewStats } from "@/lib/admin/overview";
+import { firstParam, isUuid } from "@/lib/admin/forms";
 import { loadNames } from "@/lib/admin/queries";
 import { ActionForm } from "@/components/admin/action-form";
 import { FiguresRow } from "@/components/admin/figures";
@@ -21,9 +22,20 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Overblik" };
 
-export default async function AdminOverviewPage() {
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+/** Confirmation after "Markér som læst" – only shown when the database agrees. */
+async function confirmRead(supabase: Supabase, userId: string, param: string, unreadShown: number): Promise<string | null> {
+  if (param === "alle") return unreadShown === 0 ? "Alle notifikationer er markeret som læst." : null;
+  if (!isUuid(param)) return null;
+  const { data } = await supabase.from("notifications").select("read_at").eq("id", param).eq("user_id", userId).maybeSingle();
+  return data?.read_at ? "Notifikationen er markeret som læst." : null;
+}
+
+export default async function AdminOverviewPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const admin = await requireAdmin("/admin");
   const supabase = await createClient();
+  const readParam = firstParam((await searchParams).laest);
 
   const [statsRes, eventsRes, notificationsRes] = await Promise.all([
     supabase.rpc("admin_overview_stats"),
@@ -44,10 +56,13 @@ export default async function AdminOverviewPage() {
   const stats = parseOverviewStats(statsRes.data);
   const events = eventsRes.data ?? [];
   const notifications = notificationsRes.data ?? [];
-  const names = await loadNames(
-    supabase,
-    events.map((e) => e.user_id),
-  );
+  const [names, readConfirmation] = await Promise.all([
+    loadNames(
+      supabase,
+      events.map((e) => e.user_id),
+    ),
+    confirmRead(supabase, admin.userId, readParam, notifications.length),
+  ]);
   const firstName = admin.profile.full_name.trim().split(/\s+/)[0];
 
   return (
@@ -64,6 +79,12 @@ export default async function AdminOverviewPage() {
           </>
         }
       />
+
+      {readConfirmation ? (
+        <Alert tone="success" title={null}>
+          {readConfirmation}
+        </Alert>
+      ) : null}
 
       <section aria-labelledby="tal-titel" className="space-y-4">
         <SectionTitle id="tal-titel">Lige nu</SectionTitle>

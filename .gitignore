@@ -46,3 +46,6 @@ next-env.d.ts
 # local test database
 /.pgtest/
 /.preview/
+
+# promo film captures (generated)
+/public/promo/

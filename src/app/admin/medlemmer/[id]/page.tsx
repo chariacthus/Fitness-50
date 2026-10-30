@@ -10,7 +10,7 @@ import { BUCKETS } from "@/lib/storage";
 import { signedUrl } from "@/lib/storage-server";
 import { createClient } from "@/lib/supabase/server";
 import { formatDay } from "@/lib/training/week";
-import { isUuid } from "@/lib/admin/forms";
+import { firstParam, isUuid } from "@/lib/admin/forms";
 import { CONTACT_PREFERENCE, PROFILE_ONBOARDING, SUBMISSION_STATUS, labelOr } from "@/lib/admin/labels";
 import { genitive, memberDisplayName } from "@/lib/admin/members";
 import { adminAnswers } from "@/lib/admin/onboarding";
@@ -53,8 +53,15 @@ function asSessionTitle(value: unknown): string | null {
   return value && typeof value === "object" && "title" in value && typeof value.title === "string" ? value.title : null;
 }
 
-export default async function AdminMemberPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function AdminMemberPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { id } = await params;
+  const grantParam = firstParam((await searchParams).kostplan);
   await requireAdmin(`/admin/medlemmer/${id}`);
   if (!isUuid(id)) notFound();
 
@@ -330,6 +337,14 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
           )
         }
       >
+        {hasNutrition && grantParam.startsWith("givet") ? (
+          <Alert tone="success" title="Adgang givet">
+            {name} har nu adgang til en personlig kostplan.{" "}
+            {grantParam === "givet"
+              ? `${name} har fået en notifikation på siden.`
+              : "Der kunne ikke sendes en notifikation på siden – giv gerne selv besked."}
+          </Alert>
+        ) : null}
         {hasNutrition ? (
           <p>
             <Badge tone="success">Har adgang til en personlig kostplan</Badge>

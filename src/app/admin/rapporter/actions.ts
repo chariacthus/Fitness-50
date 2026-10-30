@@ -1,10 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { dbErrorMessage, zodFieldErrors } from "@/lib/action-result";
 import { getAdminOrNull } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { CHECK_FIELDS_MESSAGE, NOT_ADMIN_MESSAGE, failForm, readText, readValues, type FormState } from "@/lib/admin/forms";
+import { CHECK_FIELDS_MESSAGE, NOT_ADMIN_MESSAGE, failForm, isUuid, readText, readValues, type FormState } from "@/lib/admin/forms";
 import { moderateMessageSchema, resolveReportSchema } from "@/lib/admin/schemas";
 import { applyCommunitySuspension } from "@/lib/admin/suspension";
 
@@ -81,5 +82,7 @@ export async function closeReport(_prev: FormState, formData: FormData): Promise
   if (error) return failForm(dbErrorMessage(error), undefined, readValues(formData, ["note"]));
 
   revalidateReports();
-  return { ok: true, message: status === "resolved" ? "Anmeldelsen er markeret som løst." : "Anmeldelsen er afvist." };
+  // The report moves to "Afsluttede", so the page confirms it after the redirect.
+  const member = readText(formData, "medlem");
+  redirect(`/admin/rapporter?${isUuid(member) ? `medlem=${member}&` : ""}afsluttet=${report_id}`);
 }

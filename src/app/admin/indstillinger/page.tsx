@@ -67,7 +67,7 @@ export default async function AdminSettingsPage() {
 
                 <fieldset className="space-y-5 border-t border-line pt-6">
                   <legend className="mb-2 text-xl font-semibold">Træneren</legend>
-                  <FormTextField name="coach_name" label="Trænerens navn" required maxLength={80} defaultValue={site.coach_name} hint="Bruges overalt på siden, f.eks. “Skriv til Christian”." />
+                  <FormTextField name="coach_name" label="Trænerens navn" required maxLength={80} defaultValue={site.coach_name} hint="Bruges overalt på siden, f.eks. på knappen, hvor medlemmerne skriver til træneren." />
                   <FormTextField
                     name="coach_badge_label"
                     label="Tekst på trænermærket"

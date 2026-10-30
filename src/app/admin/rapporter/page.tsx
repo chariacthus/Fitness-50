@@ -83,6 +83,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
   const params = await searchParams;
   const memberParam = firstParam(params.medlem);
   const memberFilter = isUuid(memberParam) ? memberParam : null;
+  const closedParam = firstParam(params.afsluttet);
   const supabase = await createClient();
 
   const base = () => {
@@ -100,7 +101,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
 
   const [openRes, closedRes, historyRes] = await Promise.all([
     base().eq("status", "open").order("created_at", { ascending: false }).limit(200),
-    base().neq("status", "open").order("created_at", { ascending: false }).limit(30),
+    base().neq("status", "open").order("resolved_at", { ascending: false, nullsFirst: false }).limit(30),
     historyQuery,
   ]);
   const open: Report[] = openRes.data ?? [];
@@ -130,6 +131,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
   const suspended = new Map((profilesRes.data ?? []).map((p) => [p.id, p.community_suspended]));
   const admins = new Set((rolesRes.data ?? []).map((r) => r.user_id));
   const loadFailed = openRes.error || closedRes.error;
+  const justClosed = isUuid(closedParam) ? closed.find((r) => r.id === closedParam) : undefined;
 
   function reportCard(report: Report) {
     const status = REPORT_STATUS[report.status] ?? REPORT_STATUS.open;
@@ -202,7 +204,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
         ) : null}
 
         {isOpen ? (
-          <ActionForm action={closeReport} hidden={{ report_id: report.id }} pendingText="Gemmer…" className="space-y-4 border-t border-line pt-4">
+          <ActionForm action={closeReport} hidden={{ report_id: report.id, medlem: memberFilter ?? "" }} pendingText="Gemmer…" className="space-y-4 border-t border-line pt-4">
             <FormTextarea name="note" label="Note" optional rows={2} maxLength={1000} hint="F.eks. hvad du har gjort. Gemmes i loggen." />
             <div className="flex flex-wrap gap-3">
               <SubmitButton name="status" value="resolved">
@@ -234,6 +236,12 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
           ) : undefined
         }
       />
+
+      {justClosed ? (
+        <Alert tone="success" title={null}>
+          {justClosed.status === "resolved" ? "Anmeldelsen er markeret som løst." : "Anmeldelsen er afvist."} Den står nu under Afsluttede anmeldelser.
+        </Alert>
+      ) : null}
 
       <Alert tone="info" title="Om private beskeder">
         Private beskeder kan kun læses af dem, der skriver sammen. En privat besked vises kun her, hvis en af deltagerne har anmeldt den – og kun som en

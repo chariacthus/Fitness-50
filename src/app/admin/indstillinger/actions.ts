@@ -146,6 +146,18 @@ const IMAGE_LABELS: Record<SiteImageField, string> = {
   hero_image_path: "Forsidebilledet",
 };
 
+async function publicFileExists(path: string) {
+  const url = siteAssetUrl(path);
+  if (!url) return false;
+  try {
+    const response = await fetch(url, { headers: { Range: "bytes=0-0" }, cache: "no-store" });
+    await response.body?.cancel();
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 /** Called by the browser after an image was uploaded to the public "site" bucket. */
 export async function saveSiteImage(input: { field: string; path: string }): Promise<FormState> {
   const admin = await getAdminOrNull();
@@ -154,10 +166,9 @@ export async function saveSiteImage(input: { field: string; path: string }): Pro
   if (!parsed.success) return failForm("Billedet kunne ikke gemmes. Prøv at uploade det igen.");
   const { field, path } = parsed.data;
 
-  // The bucket is public: check that the uploaded file is really there.
-  const url = siteAssetUrl(path);
-  const found = url ? await fetch(url, { method: "HEAD", cache: "no-store" }).then((r) => r.ok).catch(() => false) : false;
-  if (!found) return failForm("Billedet blev ikke fundet efter uploadet. Prøv at uploade det igen.");
+  // The bucket is public: check that the uploaded file is really there
+  // (a one-byte range request, so the image itself is not downloaded).
+  if (!(await publicFileExists(path))) return failForm("Billedet blev ikke fundet efter uploadet. Prøv at uploade det igen.");
 
   const supabase = await createClient();
   const { data: current, error: loadError } = await supabase.from("site_settings").select(field).eq("id", 1).maybeSingle();

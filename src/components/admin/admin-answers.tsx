@@ -1,7 +1,7 @@
 import type { AdminAnswers } from "@/lib/admin/onboarding";
 import { DetailList } from "@/components/ui/layout";
 
-/** The member's questionnaire for Christian. Health information only with consent, under its own heading. */
+/** The member's questionnaire for the coach. Health information only with consent, under its own heading. */
 export function AdminAnswersView({ answers, idPrefix = "svar" }: { answers: AdminAnswers; idPrefix?: string }) {
   return (
     <div className="space-y-6">

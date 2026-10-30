@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { dbErrorMessage } from "@/lib/action-result";
 import { getAdminOrNull } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -24,5 +25,7 @@ export async function markContactHandled(_prev: FormState, formData: FormData): 
 
   revalidatePath("/admin/kontakt");
   revalidatePath("/admin");
-  return { ok: true, message: "Beskeden er markeret som håndteret." };
+  // The message leaves the "Ikke håndteret" list, so the page confirms it after the redirect.
+  const view = readText(formData, "vis");
+  redirect(`/admin/kontakt?${view === "alle" || view === "haandterede" ? `vis=${view}&` : ""}haandteret=${id}`);
 }

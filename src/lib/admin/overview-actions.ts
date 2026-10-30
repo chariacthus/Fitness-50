@@ -5,6 +5,7 @@
 // the admin area.
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { dbErrorMessage } from "@/lib/action-result";
 import { getAdminOrNull } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -26,12 +27,10 @@ export async function markAdminNotificationsRead(_prev: FormState, formData: For
 
   revalidatePath("/admin");
   revalidatePath("/notifikationer");
-  const count = typeof data === "number" ? data : 0;
-  if (all) {
-    return {
-      ok: true,
-      message: count === 0 ? "Der var ingen ulæste notifikationer." : count === 1 ? "1 notifikation er markeret som læst." : `${count} notifikationer er markeret som læst.`,
-    };
+  if (typeof data === "number" && data === 0) {
+    return failForm(all ? "Der var ingen ulæste notifikationer." : "Notifikationen var allerede markeret som læst.");
   }
-  return { ok: true, message: count === 0 ? "Notifikationen var allerede læst." : "Notifikationen er markeret som læst." };
+  // The notification disappears from the list, so the page confirms the
+  // result after checking it in the database.
+  redirect(all ? "/admin?laest=alle" : `/admin?laest=${id}`);
 }

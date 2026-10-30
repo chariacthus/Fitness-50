@@ -333,7 +333,10 @@ begin
   if target is null then
     return 'none';
   end if;
-  if target <> auth.uid() and not public.is_admin() then
+  -- "is distinct from" (not "<>"): without a logged-in user auth.uid() is null,
+  -- "<>" yields null and the check was skipped, so a visitor could read any
+  -- member's state. (Fix found by tests/db.)
+  if target is distinct from auth.uid() and not public.is_admin() then
     raise exception 'Ikke tilladt' using errcode = '42501';
   end if;
   return public._membership_state(target);
@@ -357,7 +360,8 @@ begin
   if target is null then
     return jsonb_build_object('state', 'none');
   end if;
-  if target <> auth.uid() and not public.is_admin() then
+  -- See membership_state(): "<>" let visitors read any member's billing summary.
+  if target is distinct from auth.uid() and not public.is_admin() then
     raise exception 'Ikke tilladt' using errcode = '42501';
   end if;
   st := public._membership_state(target);
@@ -1105,6 +1109,9 @@ create trigger community_messages_guard before update on public.community_messag
   for each row execute function public.guard_community_message();
 
 -- Message rate limits (applies to logged-in users, not to the server).
+-- Also stamps the server time on messages from logged-in users: a client-set
+-- created_at in the future would pin a post to the top of the feed and keep it
+-- "unread" for everyone, even after mark_conversation_read(). (Fix found by tests/db.)
 create or replace function public.rate_limit_messages()
 returns trigger
 language plpgsql
@@ -1115,6 +1122,7 @@ begin
   if auth.uid() is null then
     return new;
   end if;
+  new.created_at := now();
   if not public.check_rate_limit(tg_table_name || ':' || auth.uid()::text, 20, 60) then
     raise exception 'Du sender beskeder meget hurtigt. Vent et øjeblik og prøv igen.' using errcode = 'P0001';
   end if;
@@ -1960,6 +1968,15 @@ $$;
 -- Function privileges: internal helpers are not callable through the API.
 -- =============================================================================
 
+-- Postgres lets PUBLIC execute every new function, so revoking only from anon
+-- (as before) had no effect: visitors could call membership_state(),
+-- membership_summary() and every other RPC. Start from "logged-in users and
+-- the server only"; the lines below narrow it further. Later migrations must
+-- revoke from public/anon for their own functions (tests/db checks this).
+-- (Fix found by tests/db.)
+revoke execute on all functions in schema public from public, anon;
+grant execute on all functions in schema public to authenticated, service_role;
+
 revoke execute on function public._notify_admins(text, text, text, text, jsonb) from public, anon, authenticated;
 revoke execute on function public._notify_user(uuid, text, text, text, text, jsonb) from public, anon, authenticated;
 revoke execute on function public._membership_state(uuid) from public, anon, authenticated;
@@ -1981,8 +1998,8 @@ grant execute on function public._post_community_welcome(uuid) to service_role;
 grant execute on function public.bootstrap_admin(text) to service_role;
 grant execute on function public.check_rate_limit(text, integer, integer) to service_role;
 
--- Visitors only need the public settings and product list.
-revoke execute on all functions in schema public from anon;
+-- Visitors only need the public settings and product list (the products
+-- policy calls is_admin()).
 grant execute on function public.is_admin() to anon;
 grant execute on function public.is_entitled() to anon;
 

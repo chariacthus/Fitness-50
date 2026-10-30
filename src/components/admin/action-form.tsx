@@ -5,7 +5,6 @@ import { useFormStatus } from "react-dom";
 import { initialFormState, type FormState } from "@/lib/admin/forms";
 import { CheckboxField, SelectField, TextareaField, TextField } from "@/components/ui/form";
 import { FormMessage } from "@/components/ui/form-message";
-import { cn } from "@/components/ui/cn";
 
 // A small progressive-enhancement form around one server action. Server
 // components compose it with the field components below, which read their
@@ -32,14 +31,18 @@ function submittedValue(ctx: Ctx, name: string) {
   return ctx.state.ok ? undefined : ctx.state.values?.[name];
 }
 
-/** Polite live text while the form is being sent (also covers ConfirmButton submits). */
+/**
+ * Visible text while the form is being sent – also for forms submitted from a
+ * ConfirmButton dialog. Screen readers already hear the SubmitButton spinner
+ * and the result message, so this text is not announced a second time.
+ */
 function PendingNotice({ text }: { text: string }) {
   const { pending } = useFormStatus();
-  return (
-    <p aria-live="polite" className={cn("text-ink-soft", !pending && "sr-only")}>
-      {pending ? text : ""}
+  return pending ? (
+    <p aria-hidden="true" className="font-semibold text-ink-soft">
+      {text}
     </p>
-  );
+  ) : null;
 }
 
 export function ActionForm({
@@ -55,6 +58,7 @@ export function ActionForm({
   /** Hidden inputs, e.g. the id of the record the form changes. */
   hidden?: Record<string, string>;
   children: ReactNode;
+  /** Replaces the default "space-y-4". */
   className?: string;
   successTitle?: string;
   pendingText?: string;
@@ -72,7 +76,7 @@ export function ActionForm({
 
   return (
     <FormContext.Provider value={{ state, prefix }}>
-      <form ref={formRef} action={formAction} className={cn("space-y-4", className)} aria-label={ariaLabel}>
+      <form ref={formRef} action={formAction} className={className ?? "space-y-4"} aria-label={ariaLabel}>
         {hidden ? Object.entries(hidden).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />) : null}
         {children}
         <PendingNotice text={pendingText} />

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { dbErrorMessage, zodFieldErrors } from "@/lib/action-result";
 import { getAdminOrNull } from "@/lib/auth";
 import { notifyUser } from "@/lib/notifications";
@@ -21,11 +22,9 @@ export async function grantNutritionAccess(_prev: FormState, formData: FormData)
   const { user_id, note } = parsed.data;
 
   const supabase = await createClient();
-  const { data: profile, error: loadError } = await supabase.from("profiles").select("id, full_name").eq("id", user_id).maybeSingle();
+  const { data: profile, error: loadError } = await supabase.from("profiles").select("id").eq("id", user_id).maybeSingle();
   if (loadError) return failForm(dbErrorMessage(loadError));
   if (!profile) return failForm("Medlemmet blev ikke fundet.");
-  const name = memberDisplayName(profile.full_name, "Medlemmet");
-
   const { error } = await supabase.rpc("grant_addon", {
     p_user: user_id,
     p_slug: "kostplan",
@@ -52,12 +51,8 @@ export async function grantNutritionAccess(_prev: FormState, formData: FormData)
   revalidatePath("/admin/medlemmer");
   revalidatePath("/admin/kostplaner");
   revalidatePath("/admin");
-  return {
-    ok: true,
-    message: `${name} har nu adgang til en personlig kostplan. ${
-      notified ? `${name} har fået en notifikation på siden.` : "Der kunne ikke sendes en notifikation på siden – giv gerne selv besked."
-    }`,
-  };
+  // The grant form disappears once access exists, so the page shows the outcome after the redirect.
+  redirect(`/admin/medlemmer/${user_id}?kostplan=${notified ? "givet" : "givet-uden-notifikation"}`);
 }
 
 export async function setMemberSuspension(_prev: FormState, formData: FormData): Promise<FormState> {

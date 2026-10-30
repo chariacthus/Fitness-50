@@ -33,7 +33,7 @@ export type OverviewFigure = {
   key: OverviewKey;
   label: string;
   href: string;
-  /** Highlighted when above zero – something is waiting for Christian. */
+  /** Highlighted when above zero – something is waiting for the coach. */
   needsAttention?: boolean;
 };
 

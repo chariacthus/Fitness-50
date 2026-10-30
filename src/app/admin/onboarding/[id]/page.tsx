@@ -14,7 +14,7 @@ import { AdminAnswersView } from "@/components/admin/admin-answers";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
-import { PageHeader } from "@/components/ui/layout";
+import { PageHeader, SectionTitle } from "@/components/ui/layout";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { markSubmissionReviewed } from "./actions";
 
@@ -93,7 +93,10 @@ export default async function AdminOnboardingSubmissionPage({ params }: { params
         </Alert>
       ) : null}
 
-      <AdminAnswersView answers={adminAnswers(submission)} />
+      <section aria-labelledby="svar-titel" className="space-y-4">
+        <SectionTitle id="svar-titel">Svarene</SectionTitle>
+        <AdminAnswersView answers={adminAnswers(submission)} />
+      </section>
 
       <p>
         <Link href={`/admin/medlemmer/${submission.user_id}`} className="inline-flex min-h-11 items-center font-semibold text-brand underline underline-offset-4">
