@@ -16,10 +16,22 @@ const PROTECTED_PREFIXES = [
   "/admin",
 ];
 
+// Public pages are pre-rendered and never read the session on the server.
+const PUBLIC_PATHS = new Set([
+  "/",
+  "/om-christian",
+  "/saadan-fungerer-det",
+  "/medlemskab",
+  "/faq",
+  "/kontakt",
+  "/privatlivspolitik",
+  "/handelsbetingelser",
+]);
+
 /** Refreshes the Supabase session cookie and redirects anonymous visitors away from member pages. */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
-  if (!isSupabaseConfigured()) return response;
+  if (!isSupabaseConfigured() || PUBLIC_PATHS.has(request.nextUrl.pathname)) return response;
 
   const supabase = createServerClient<Database>(publicEnv.supabaseUrl, publicEnv.supabasePublishableKey, {
     cookies: {

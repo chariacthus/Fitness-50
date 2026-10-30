@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/public-data";
 import type { Tables } from "@/lib/database.types";
 
 export type PublicProduct = Pick<
@@ -34,7 +34,8 @@ const COLUMNS =
  */
 export const getPublicProducts = cache(async (): Promise<PublicProducts> => {
   try {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
+    if (!supabase) return { ok: false, memberships: [], nutrition: null };
     const { data, error } = await supabase
       .from("products")
       .select(COLUMNS)

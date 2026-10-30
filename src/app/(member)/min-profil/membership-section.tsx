@@ -48,8 +48,9 @@ export function MembershipSection({
   const manageable = isStripe && hasSubscription && ["active", "canceling", "past_due_grace", "past_due"].includes(state);
 
   const details: { label: string; value: ReactNode }[] = [{ label: "Status", value: <MembershipBadge state={state} /> }];
-  if (hasSubscription && summary.product_name) details.push({ label: "Medlemskab", value: summary.product_name });
-  if (hasSubscription && summary.amount != null) {
+  const current = manageable || (hasSubscription && state === "pending");
+  if (current && summary.product_name) details.push({ label: "Medlemskab", value: summary.product_name });
+  if (current && summary.amount != null) {
     details.push({ label: "Pris", value: `${formatDKK(summary.amount)} ${formatInterval(summary.billing_interval)}`.trim() });
   }
   if (state === "active" && summary.current_period_end) {
@@ -61,7 +62,7 @@ export function MembershipSection({
       value: summary.access_until ? `Opsagt – du har adgang til og med ${formatDate(summary.access_until)}` : "Opsagt – du har adgang resten af perioden",
     });
   }
-  if (hasSubscription && isStripe && state !== "admin") {
+  if (manageable) {
     details.push({
       label: "Betalingskort",
       value:

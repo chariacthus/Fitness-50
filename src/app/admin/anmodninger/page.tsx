@@ -16,8 +16,21 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Dataanmodninger" };
 
-export default async function DataRequestsPage() {
+function outcomeMessage(done: string | undefined, subscriptions: number) {
+  if (done === "slettet") {
+    const stopped = subscriptions > 0 ? ` ${subscriptions === 1 ? "Abonnementet er" : `${subscriptions} abonnementer er`} stoppet hos Stripe.` : "";
+    return { title: "Kontoen er slettet", text: `Medlemmets konto, beskeder og billeder er slettet.${stopped} Betalingsoplysningerne er stadig gemt hos Stripe.` };
+  }
+  if (done === "allerede-slettet") return { title: "Anmodningen er gennemført", text: "Kontoen var allerede slettet, så anmodningen er blot markeret som gennemført." };
+  if (done === "afvist") return { title: "Anmodningen er afvist", text: "Begrundelsen er gemt på anmodningen." };
+  if (done === "haandteret") return { title: "Anmodningen er håndteret", text: "Anmodningen er markeret som gennemført." };
+  return null;
+}
+
+export default async function DataRequestsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   await requireAdmin("/admin/anmodninger");
+  const sp = await searchParams;
+  const outcome = outcomeMessage(typeof sp.udfoert === "string" ? sp.udfoert : undefined, Number(sp.abonnementer) || 0);
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("data_requests")
@@ -43,6 +56,12 @@ export default async function DataRequestsPage() {
         title="Dataanmodninger"
         description="Medlemmernes anmodninger om sletning af konto og udtræk af data. Medlemmerne henter selv deres data under Min profil – de udtræk står her som gennemførte."
       />
+
+      {outcome ? (
+        <Alert tone="success" title={outcome.title}>
+          {outcome.text}
+        </Alert>
+      ) : null}
 
       {error ? (
         <Alert tone="danger">Anmodningerne kunne ikke hentes lige nu. Genindlæs siden om lidt.</Alert>

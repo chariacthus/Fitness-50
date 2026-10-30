@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { dbErrorMessage, zodFieldErrors } from "@/lib/action-result";
 import { getAdminOrNull } from "@/lib/auth";
@@ -48,7 +49,12 @@ export async function completeDeletion(_prev: FormState, formData: FormData): Pr
   if (!request || request.type !== "deletion") return failForm("Anmodningen blev ikke fundet.");
   if (request.status !== "pending") return failForm("Anmodningen er allerede behandlet.");
 
-  const service = createAdminClient();
+  let service: ReturnType<typeof createAdminClient>;
+  try {
+    service = createAdminClient();
+  } catch {
+    return failForm("Serveren mangler sin adgangsnøgle til databasen (SUPABASE_SECRET_KEY), så kontoen kan ikke slettes herfra. Intet er slettet.");
+  }
   const now = new Date().toISOString();
   const markCompleted = () =>
     service
@@ -64,7 +70,7 @@ export async function completeDeletion(_prev: FormState, formData: FormData): Pr
     const { error } = await markCompleted();
     revalidateRequests();
     if (error) return failForm(dbErrorMessage(error, "Anmodningen kunne ikke markeres som gennemført. Prøv igen."));
-    return { ok: true, message: "Kontoen var allerede slettet. Anmodningen er markeret som gennemført." };
+    redirect("/admin/anmodninger?udfoert=allerede-slettet");
   }
   if (uid === admin.userId) return failForm("Du kan ikke slette din egen administratorkonto herfra.");
   const { data: targetRole, error: roleError } = await supabase
@@ -138,10 +144,8 @@ export async function completeDeletion(_prev: FormState, formData: FormData): Pr
 
   revalidateRequests();
   revalidatePath("/admin/medlemmer");
-  return {
-    ok: true,
-    message: `Kontoen er slettet.${running.length ? ` ${running.length === 1 ? "Abonnementet er" : `${running.length} abonnementer er`} stoppet hos Stripe.` : ""} Betalingsoplysningerne er stadig gemt hos Stripe.`,
-  };
+  // The request is no longer pending, so its form disappears: report on the page instead.
+  redirect(`/admin/anmodninger?udfoert=slettet&abonnementer=${running.length}`);
 }
 
 /** "Afvis" with a short reason. */
@@ -163,7 +167,7 @@ export async function rejectRequest(_prev: FormState, formData: FormData): Promi
   if (error) return failForm(dbErrorMessage(error, "Anmodningen kunne ikke afvises. Prøv igen."), undefined, values);
   if (!data) return failForm("Anmodningen er allerede behandlet eller annulleret.", undefined, values);
   revalidateRequests();
-  return { ok: true, message: "Anmodningen er afvist." };
+  redirect("/admin/anmodninger?udfoert=afvist");
 }
 
 /** "Markér som håndteret" for an export request. */
@@ -185,5 +189,5 @@ export async function markRequestHandled(_prev: FormState, formData: FormData): 
   if (error) return failForm(dbErrorMessage(error, "Anmodningen kunne ikke opdateres. Prøv igen."));
   if (!data) return failForm("Anmodningen er allerede behandlet eller annulleret.");
   revalidateRequests();
-  return { ok: true, message: "Anmodningen er markeret som håndteret." };
+  redirect("/admin/anmodninger?udfoert=haandteret");
 }

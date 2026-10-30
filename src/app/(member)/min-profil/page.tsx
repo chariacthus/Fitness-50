@@ -74,7 +74,7 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
     paid_at: p.paid_at,
     productName: p.products?.name ?? "Tilkøb",
   }));
-  const name = viewer.profile.full_name || "Dit navn";
+  const name = viewer.profile.full_name || viewer.email || "Medlem";
   const exportStatus = typeof sp.eksport === "string" ? sp.eksport : undefined;
 
   return (
@@ -93,13 +93,14 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
               </div>
             </div>
             <AvatarUpload userId={viewer.userId} hasAvatar={Boolean(viewer.profile.avatar_path)} />
-            {viewer.profile.avatar_path ? (
-              <InlineActionForm action={removeAvatar} pendingText="Fjerner billedet…">
+            {/* Always rendered, so the outcome stays visible after the picture is gone. */}
+            <InlineActionForm action={removeAvatar} pendingText="Fjerner billedet…">
+              {viewer.profile.avatar_path ? (
                 <ConfirmButton title="Fjern dit profilbillede?" description="Billedet bliver slettet. Du kan altid tilføje et nyt." confirmLabel="Ja, fjern billedet">
                   Fjern billede
                 </ConfirmButton>
-              </InlineActionForm>
-            ) : null}
+              ) : null}
+            </InlineActionForm>
           </Panel>
           <Panel>
             {privateRes.error ? (

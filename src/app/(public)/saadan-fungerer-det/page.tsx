@@ -10,7 +10,8 @@ import { Steps } from "@/components/public/steps";
 import { TextLink } from "@/components/public/text-link";
 import { TrainingPlaces } from "@/components/public/training-places";
 
-export const dynamic = "force-dynamic";
+// Pre-rendered and refreshed every 5 minutes (no per-visitor data on this page).
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Sådan fungerer det",

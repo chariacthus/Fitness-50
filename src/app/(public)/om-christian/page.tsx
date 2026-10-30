@@ -8,7 +8,8 @@ import { PlaceholderNote, SettingText } from "@/components/public/placeholder-te
 import { Eyebrow, Section, SectionHeading } from "@/components/public/section";
 import { SiteImage } from "@/components/public/site-image";
 
-export const dynamic = "force-dynamic";
+// Pre-rendered and refreshed every 5 minutes (no per-visitor data on this page).
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();

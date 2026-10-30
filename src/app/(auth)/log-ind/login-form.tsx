@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import Link from "next/link";
 import { CheckboxField, TextField } from "@/components/ui/form";
 import { FormMessage } from "@/components/ui/form-message";
@@ -8,17 +8,23 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { Panel, SectionTitle } from "@/components/ui/layout";
 import { fieldError, initialAuthState } from "@/lib/auth-flow/form-state";
 import { withNext } from "@/lib/auth-flow/safe-next";
+import { useFormDraft } from "@/lib/auth-flow/draft";
 import { ResendConfirmationForm } from "../_components/resend-form";
 import { login } from "./actions";
+
+// Only the e-mail is remembered locally – never the password.
+const DRAFT_FIELDS = ["email"] as const;
 
 export function LoginForm({ next }: { next: string }) {
   const [state, formAction] = useActionState(login, initialAuthState);
   const [showPassword, setShowPassword] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  useFormDraft(formRef, "log-ind", DRAFT_FIELDS);
 
   return (
     <div className="space-y-8">
       <Panel as="div">
-        <form action={formAction} className="space-y-5" noValidate>
+        <form ref={formRef} action={formAction} className="space-y-5" noValidate>
           <input type="hidden" name="next" value={next} />
           <div aria-live="polite">
             <FormMessage state={state} />

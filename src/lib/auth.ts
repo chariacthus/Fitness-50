@@ -14,22 +14,26 @@ export type Viewer = {
   isEntitled: boolean;
 };
 
-/** Verified id of the logged-in user (validates the JWT), or null. Cached per request. */
-export const getUserId = cache(async (): Promise<string | null> => {
+/** Verified claims of the logged-in user (validates the JWT), or null. Cached per request. */
+const getClaims = cache(async (): Promise<{ sub: string; email: string | null } | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
   if (error || !data?.claims?.sub) return null;
-  return data.claims.sub;
+  return { sub: data.claims.sub, email: typeof data.claims.email === "string" ? data.claims.email : null };
 });
+
+/** Verified id of the logged-in user, or null. Cached per request. */
+export const getUserId = cache(async (): Promise<string | null> => (await getClaims())?.sub ?? null);
 
 /** Everything the UI needs about the logged-in user. Cached per request. */
 export const getViewer = cache(async (): Promise<Viewer | null> => {
-  const userId = await getUserId();
-  if (!userId) return null;
+  const claims = await getClaims();
+  if (!claims) return null;
+  const userId = claims.sub;
   const supabase = await createClient();
 
-  const [{ data: userData }, { data: profile }, { data: isAdmin }, { data: summary }] = await Promise.all([
-    supabase.auth.getUser(),
+  // The e-mail comes from the verified token – no extra round trip to the auth server.
+  const [{ data: profile }, { data: isAdmin }, { data: summary }] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
     supabase.rpc("is_admin"),
     supabase.rpc("membership_summary"),
@@ -39,7 +43,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   const membership = parseMembershipSummary(summary);
   return {
     userId,
-    email: userData.user?.email ?? null,
+    email: claims.email,
     profile,
     isAdmin: Boolean(isAdmin),
     membership,

@@ -8,7 +8,8 @@ import { getPublicProducts } from "@/components/public/products";
 import { PageIntro, Section, SectionHeading } from "@/components/public/section";
 import { TextLink } from "@/components/public/text-link";
 
-export const dynamic = "force-dynamic";
+// Pre-rendered and refreshed every 5 minutes (no per-visitor data on this page).
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Medlemskab og priser",

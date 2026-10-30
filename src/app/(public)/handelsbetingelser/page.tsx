@@ -6,7 +6,8 @@ import { LegalDocument, Ph, type LegalSection } from "@/components/public/legal"
 import { Fill } from "@/components/public/placeholder-text";
 import { getPublicProducts } from "@/components/public/products";
 
-export const dynamic = "force-dynamic";
+// Pre-rendered and refreshed every 5 minutes (no per-visitor data on this page).
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Handelsbetingelser",

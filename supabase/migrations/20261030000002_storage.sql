@@ -102,6 +102,13 @@ create policy "training-media: admins delete" on storage.objects
   using (bucket_id = 'training-media' and (select public.is_admin()));
 
 -- Site images: public read through the public URL; admins write.
+-- Storage needs SELECT on the object for upsert (replace), move and remove.
+-- Without this policy administrators could upload site images but never
+-- replace or delete them. (Fix found by tests/db.)
+drop policy if exists "site: admins read" on storage.objects;
+create policy "site: admins read" on storage.objects
+  for select to authenticated
+  using (bucket_id = 'site' and (select public.is_admin()));
 drop policy if exists "site: admins upload" on storage.objects;
 create policy "site: admins upload" on storage.objects
   for insert to authenticated

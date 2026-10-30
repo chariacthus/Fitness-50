@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import Link from "next/link";
 import { CheckboxField, TextField } from "@/components/ui/form";
 import { FormMessage } from "@/components/ui/form-message";
@@ -9,19 +9,34 @@ import { Panel } from "@/components/ui/layout";
 import { fieldError, initialAuthState } from "@/lib/auth-flow/form-state";
 import { withNext } from "@/lib/auth-flow/safe-next";
 import { PASSWORD_MIN } from "@/lib/auth-flow/schemas";
+import { useFormDraft } from "@/lib/auth-flow/draft";
 import { signup } from "./actions";
 
 const linkClass = "font-semibold text-brand underline underline-offset-4";
+
+// Saved locally while typing (never the passwords).
+const DRAFT_FIELDS = ["full_name", "email", "accept_terms"] as const;
+
+function NewTabLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className={linkClass}>
+      {children}
+      <span className="sr-only"> (åbner i et nyt vindue)</span>
+    </a>
+  );
+}
 
 export function SignupForm({ next }: { next: string }) {
   const [state, formAction] = useActionState(signup, initialAuthState);
   const [showPassword, setShowPassword] = useState(false);
   const passwordType = showPassword ? "text" : "password";
+  const formRef = useRef<HTMLFormElement>(null);
+  useFormDraft(formRef, "opret-konto", DRAFT_FIELDS);
 
   return (
     <div className="space-y-8">
       <Panel as="div">
-        <form action={formAction} className="space-y-5" noValidate>
+        <form ref={formRef} action={formAction} className="space-y-5" noValidate>
           <input type="hidden" name="next" value={next} />
           <div aria-live="polite">
             <FormMessage state={state} />
@@ -78,13 +93,8 @@ export function SignupForm({ next }: { next: string }) {
             label={
               <>
                 Jeg accepterer{" "}
-                <Link href="/handelsbetingelser" className={linkClass}>
-                  handelsbetingelserne
-                </Link>{" "}
-                og har læst{" "}
-                <Link href="/privatlivspolitik" className={linkClass}>
-                  privatlivspolitikken
-                </Link>
+                <NewTabLink href="/handelsbetingelser">handelsbetingelserne</NewTabLink> og har læst{" "}
+                <NewTabLink href="/privatlivspolitik">privatlivspolitikken</NewTabLink>
                 .
               </>
             }

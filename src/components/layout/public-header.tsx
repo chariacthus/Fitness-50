@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { getUserId } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/settings";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/layout";
 import { Logo } from "@/components/layout/logo";
+import { AuthSwitch } from "@/components/layout/auth-switch";
 
 export const PUBLIC_NAV = [
   { href: "/saadan-fungerer-det", label: "Sådan fungerer det" },
@@ -14,7 +14,7 @@ export const PUBLIC_NAV = [
 ] as const;
 
 export async function PublicHeader() {
-  const [settings, userId] = await Promise.all([getSiteSettings(), getUserId()]);
+  const settings = await getSiteSettings();
   const coachNav = PUBLIC_NAV.map((item) =>
     item.href === "/om-christian" ? { ...item, label: `Om ${settings.coach_name}` } : item,
   );
@@ -36,25 +36,32 @@ export async function PublicHeader() {
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
-          {userId ? (
-            <ButtonLink href="/hjem">Til medlemsområdet</ButtonLink>
-          ) : (
-            <>
-              <Link href="/log-ind" className="inline-flex min-h-11 items-center px-3 font-semibold text-brand hover:underline">
-                Log ind
-              </Link>
-              <ButtonLink href="/bliv-medlem">Bliv medlem</ButtonLink>
-            </>
-          )}
+          <AuthSwitch
+            loggedIn={<ButtonLink href="/hjem">Til medlemsområdet</ButtonLink>}
+            loggedOut={
+              <>
+                <Link href="/log-ind" className="inline-flex min-h-11 items-center px-3 font-semibold text-brand hover:underline">
+                  Log ind
+                </Link>
+                <ButtonLink href="/bliv-medlem">Bliv medlem</ButtonLink>
+              </>
+            }
+          />
         </div>
 
         <div className="flex items-center gap-2 lg:hidden">
-          <Link
-            href={userId ? "/hjem" : "/log-ind"}
-            className="inline-flex min-h-12 items-center rounded-md px-3 font-semibold text-brand hover:bg-muted"
-          >
-            {userId ? "Min side" : "Log ind"}
-          </Link>
+          <AuthSwitch
+            loggedIn={
+              <Link href="/hjem" className="inline-flex min-h-12 items-center rounded-md px-3 font-semibold text-brand hover:bg-muted">
+                Min side
+              </Link>
+            }
+            loggedOut={
+              <Link href="/log-ind" className="inline-flex min-h-12 items-center rounded-md px-3 font-semibold text-brand hover:bg-muted">
+                Log ind
+              </Link>
+            }
+          />
         {/* Mobile menu: native disclosure works without JavaScript and with keyboard. */}
         <details className="group">
           <summary className="inline-flex min-h-12 cursor-pointer list-none items-center gap-2 rounded-md border-2 border-line px-4 font-semibold">
@@ -74,20 +81,23 @@ export async function PublicHeader() {
               </ul>
             </nav>
             <div className="mt-4 grid gap-3">
-              {userId ? (
-                <ButtonLink href="/hjem" size="lg">
-                  Til medlemsområdet
-                </ButtonLink>
-              ) : (
-                <>
-                  <ButtonLink href="/bliv-medlem" size="lg">
-                    Bliv medlem
+              <AuthSwitch
+                loggedIn={
+                  <ButtonLink href="/hjem" size="lg">
+                    Til medlemsområdet
                   </ButtonLink>
-                  <ButtonLink href="/log-ind" variant="secondary" size="lg">
-                    Log ind
-                  </ButtonLink>
-                </>
-              )}
+                }
+                loggedOut={
+                  <>
+                    <ButtonLink href="/bliv-medlem" size="lg">
+                      Bliv medlem
+                    </ButtonLink>
+                    <ButtonLink href="/log-ind" variant="secondary" size="lg">
+                      Log ind
+                    </ButtonLink>
+                  </>
+                }
+              />
             </div>
           </div>
         </details>

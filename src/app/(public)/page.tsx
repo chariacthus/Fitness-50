@@ -1,16 +1,17 @@
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/layout";
 import { Contours } from "@/components/ui/decor";
-import { getUserId } from "@/lib/auth";
 import { getSiteSettings, siteAssetUrl } from "@/lib/settings";
 import { CtaBand } from "@/components/public/cta-band";
+import { AuthSwitch } from "@/components/layout/auth-switch";
 import { CheckIcon } from "@/components/public/feature-list";
 import { BenefitIcon, type BenefitIconName } from "@/components/public/illustrations";
 import { Pricing } from "@/components/public/pricing";
 import { Section, SectionHeading } from "@/components/public/section";
 import { MoreLink } from "@/components/public/text-link";
 
-export const dynamic = "force-dynamic";
+// Pre-rendered and refreshed every 5 minutes (no per-visitor data on this page).
+export const revalidate = 300;
 
 /** Illustrative example of a training day in "Min træning" – captioned as an example. */
 function ExampleTrainingDay() {
@@ -58,7 +59,7 @@ function ExampleProgress() {
 }
 
 export default async function HomePage() {
-  const [settings, userId] = await Promise.all([getSiteSettings(), getUserId()]);
+  const settings = await getSiteSettings();
   const coach = settings.coach_name;
   const heroImage = siteAssetUrl(settings.hero_image_path);
 
@@ -86,38 +87,41 @@ export default async function HomePage() {
         ) : null}
         <Container className="relative grid items-center gap-16 py-20 sm:py-28 lg:grid-cols-[1.2fr_1fr] lg:py-32">
           <div className="space-y-8">
-            <p className="rise flex items-center gap-3 text-sm font-bold uppercase tracking-[0.14em] text-accent-light">
+            <p className="flex items-center gap-3 text-sm font-bold uppercase tracking-[0.14em] text-accent-light">
               <span aria-hidden="true" className="h-0.5 w-8 bg-current" />
               Træning for mænd over 50
             </p>
-            <h1 className="rise text-[2.6rem] leading-[1.05] text-balance sm:text-6xl lg:text-7xl" style={{ ["--d" as string]: "80ms" }}>
+            <h1 className="text-[2.6rem] leading-[1.05] text-balance sm:text-6xl lg:text-7xl">
               Bliv stærkere. Få mere energi. Hold dig i gang.
             </h1>
-            <p className="rise max-w-lg text-xl text-on-night-soft sm:text-2xl sm:leading-relaxed" style={{ ["--d" as string]: "160ms" }}>
+            <p className="max-w-lg text-xl text-on-night-soft sm:text-2xl sm:leading-relaxed">
               En personlig plan og et fællesskab, der holder dig i gang.
             </p>
-            <div className="rise flex flex-wrap gap-3" style={{ ["--d" as string]: "240ms" }}>
+            <div className="flex flex-wrap gap-3">
               <ButtonLink href="/bliv-medlem" size="lg" variant="inverse">
                 Bliv medlem
               </ButtonLink>
-              {userId ? (
-                <ButtonLink href="/hjem" variant="inverseOutline" size="lg">
-                  Til medlemsområdet
-                </ButtonLink>
-              ) : (
-                <ButtonLink href="/log-ind" variant="inverseOutline" size="lg">
-                  Log ind
-                </ButtonLink>
-              )}
+              <AuthSwitch
+                loggedIn={
+                  <ButtonLink href="/hjem" variant="inverseOutline" size="lg">
+                    Til medlemsområdet
+                  </ButtonLink>
+                }
+                loggedOut={
+                  <ButtonLink href="/log-ind" variant="inverseOutline" size="lg">
+                    Log ind
+                  </ButtonLink>
+                }
+              />
             </div>
           </div>
 
           <div className="relative hidden justify-center sm:flex lg:justify-end">
-            <div className="rise float" style={{ ["--d" as string]: "300ms" }}>
+            <div>
               <ExampleTrainingDay />
             </div>
-            <div className="rise absolute -bottom-10 left-0 lg:-left-6" style={{ ["--d" as string]: "450ms" }}>
-              <div className="float" style={{ ["--d" as string]: "1.2s" }}>
+            <div className="absolute -bottom-10 left-0 lg:-left-6">
+              <div>
                 <ExampleProgress />
               </div>
             </div>
@@ -145,7 +149,7 @@ export default async function HomePage() {
 
       {/* What you get */}
       <Section tone="canvas" labelledBy="medlemskab-titel">
-        <div className="reveal">
+        <div>
           <SectionHeading id="medlemskab-titel" eyebrow="Medlemskabet" title="Alt samlet ét sted" />
           <ul role="list" className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {benefits.map((b) => (
@@ -161,7 +165,7 @@ export default async function HomePage() {
 
       {/* How to start */}
       <Section tone="surface" labelledBy="forloeb-titel">
-        <div className="reveal">
+        <div>
           <SectionHeading id="forloeb-titel" eyebrow="Sådan kommer du i gang" title="Tre enkle trin" />
           <ol role="list" className="mt-12 grid gap-10 md:grid-cols-3">
             {steps.map((step, i) => (
@@ -185,7 +189,7 @@ export default async function HomePage() {
 
       {/* Price */}
       <Section id="priser" tone="tint" labelledBy="priser-titel">
-        <div className="reveal">
+        <div>
           <SectionHeading id="priser-titel" eyebrow="Pris" title="Ét medlemskab. Ingen binding." />
           <div className="mt-12">
             <Pricing showNutrition={false} />
@@ -196,7 +200,7 @@ export default async function HomePage() {
         </div>
       </Section>
 
-      <CtaBand title="Klar til at komme i gang?" secondary={userId ? null : { href: "/log-ind", label: "Log ind" }}>
+      <CtaBand title="Klar til at komme i gang?" secondary={{ href: "/log-ind", label: "Log ind" }}>
         <p>Det tager kun få minutter.</p>
       </CtaBand>
     </>

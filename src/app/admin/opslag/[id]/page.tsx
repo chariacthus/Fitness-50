@@ -60,20 +60,17 @@ function MediaList({ announcementId, items }: { announcementId: string; items: A
                 <p className="text-ink-soft">Videoens titel og beskrivelse skriver du i feltet “Video” ovenfor.</p>
               )}
               <div className="flex flex-wrap items-start gap-3">
-                {index > 0 ? (
-                  <InlineActionForm action={moveAnnouncementMedia} hidden={{ ...ref, direction: "up" }} pendingText="Flytter…">
-                    <SubmitButton variant="secondary" size="sm" pendingText="Flytter…">
-                      Flyt op<span className="sr-only">: {name}</span>
-                    </SubmitButton>
-                  </InlineActionForm>
-                ) : null}
-                {index < items.length - 1 ? (
-                  <InlineActionForm action={moveAnnouncementMedia} hidden={{ ...ref, direction: "down" }} pendingText="Flytter…">
-                    <SubmitButton variant="secondary" size="sm" pendingText="Flytter…">
-                      Flyt ned<span className="sr-only">: {name}</span>
-                    </SubmitButton>
-                  </InlineActionForm>
-                ) : null}
+                {/* Always rendered (disabled at the ends), so the outcome stays visible after the move. */}
+                <InlineActionForm action={moveAnnouncementMedia} hidden={{ ...ref, direction: "up" }} pendingText="Flytter…">
+                  <SubmitButton variant="secondary" size="sm" pendingText="Flytter…" disabled={index === 0}>
+                    Flyt op<span className="sr-only">: {name}</span>
+                  </SubmitButton>
+                </InlineActionForm>
+                <InlineActionForm action={moveAnnouncementMedia} hidden={{ ...ref, direction: "down" }} pendingText="Flytter…">
+                  <SubmitButton variant="secondary" size="sm" pendingText="Flytter…" disabled={index === items.length - 1}>
+                    Flyt ned<span className="sr-only">: {name}</span>
+                  </SubmitButton>
+                </InlineActionForm>
                 <InlineActionForm action={removeAnnouncementMedia} hidden={ref} pendingText="Fjerner…">
                   <ConfirmButton
                     title={`Fjern ${name.toLowerCase()}?`}
@@ -140,6 +137,12 @@ export default async function AnnouncementEditorPage({
           </ButtonLink>
         }
       />
+
+      {sp.fjernet === "1" || sp.fjernet === "fil" ? (
+        <Alert tone={sp.fjernet === "1" ? "success" : "warning"} title="Filen er fjernet fra opslaget">
+          {sp.fjernet === "1" ? "Filen er også slettet fra lageret." : "Selve filen kunne ikke slettes fra lageret, men den er ikke synlig for nogen."}
+        </Alert>
+      ) : null}
 
       {sp.oprettet === "1" ? (
         <Alert tone="success" title="Kladden er oprettet">

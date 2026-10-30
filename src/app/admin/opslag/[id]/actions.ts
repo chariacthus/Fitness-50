@@ -7,6 +7,8 @@ import { dbErrorMessage, fail, ok, zodFieldErrors, type ActionResult } from "@/l
 import { getAdminOrNull } from "@/lib/auth";
 import { BUCKETS, isAllowedVideo } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/server";
+import { formatDateTime } from "@/lib/format";
+import { isInFuture } from "@/lib/announcements/datetime";
 import { publishOutcomeMessage } from "@/lib/announcements/labels";
 import {
   ANNOUNCEMENT_FIELDS,
@@ -105,7 +107,14 @@ export async function saveAnnouncement(_prev: FormState, formData: FormData): Pr
 
   revalidateAnnouncement(id.data);
   if (intent.data === "unpublish") return { ok: true, message: "Opslaget er afpubliceret og er nu en kladde. Medlemmerne kan ikke længere se det." };
-  return { ok: true, message: existing.status === "published" ? "Ændringerne er gemt og kan ses af medlemmerne." : "Kladden er gemt." };
+  if (existing.status !== "published") return { ok: true, message: "Kladden er gemt." };
+  return {
+    ok: true,
+    message:
+      update.published_at && isInFuture(update.published_at)
+        ? `Ændringerne er gemt. Opslaget bliver synligt for medlemmerne ${formatDateTime(update.published_at)}.`
+        : "Ændringerne er gemt og kan ses af medlemmerne.",
+  };
 }
 
 /** "Slet opslag": removes the announcement, its media rows and its stored files. */
@@ -243,11 +252,9 @@ export async function removeAnnouncementMedia(_prev: FormState, formData: FormDa
   const { data: removed, error: storageError } = await supabase.storage.from(BUCKETS.announcements).remove([link.media.path]);
 
   revalidateAnnouncement(parsed.data.announcementId);
-  const what = link.media.kind === "video" ? "Videoen" : "Billedet";
-  if (storageError || (removed ?? []).length === 0) {
-    return { ok: true, message: `${what} er fjernet fra opslaget, men selve filen kunne ikke slettes fra lageret. Den er ikke synlig for nogen.` };
-  }
-  return { ok: true, message: `${what} er fjernet fra opslaget.` };
+  // The item (and this form) disappears, so the outcome is shown on the page.
+  const filesRemoved = !storageError && (removed ?? []).length > 0;
+  redirect(`/admin/opslag/${parsed.data.announcementId}?fjernet=${filesRemoved ? "1" : "fil"}`);
 }
 
 /** "Flyt op" / "Flyt ned". */

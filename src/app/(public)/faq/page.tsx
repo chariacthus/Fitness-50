@@ -6,7 +6,8 @@ import { faqEntries } from "@/components/public/faq-content";
 import { getPublicProducts } from "@/components/public/products";
 import { PageIntro, Section } from "@/components/public/section";
 
-export const dynamic = "force-dynamic";
+// Pre-rendered and refreshed every 5 minutes (no per-visitor data on this page).
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Ofte stillede spørgsmål",
