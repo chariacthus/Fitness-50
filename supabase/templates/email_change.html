@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="da">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bekræft din nye e-mail</title>
+  </head>
+  <body style="margin:0; padding:0; background-color:#faf8f4; color:#1f2421; font-family:Arial, Helvetica, sans-serif; font-size:18px; line-height:1.6;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#faf8f4;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px; background-color:#ffffff; border:1px solid #dcd6ca; border-radius:8px;">
+            <tr>
+              <td style="padding:32px 28px;">
+                <p style="margin:0 0 24px; font-size:24px; font-weight:bold; color:#4f5d3a;">Stærk50</p>
+                <h1 style="margin:0 0 16px; font-size:28px; line-height:1.3; color:#1f2421;">Bekræft din nye e-mail</h1>
+                <p style="margin:0 0 16px;">Du har bedt om at ændre e-mailadressen på din konto hos Stærk50 fra <strong>{{ .Email }}</strong> til <strong>{{ .NewEmail }}</strong>.</p>
+                <p style="margin:0 0 16px;">Klik på knappen herunder for at bekræfte ændringen.</p>
+                <p style="margin:28px 0;">
+                  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email_change&next=/min-profil" style="display:inline-block; background-color:#4f5d3a; color:#ffffff; text-decoration:none; font-weight:bold; font-size:20px; padding:16px 28px; border-radius:6px;">Bekræft ændringen</a>
+                </p>
+                <p style="margin:0 0 16px; font-size:16px; color:#474e49;">
+                  Virker knappen ikke? Kopiér linket herunder, og sæt det ind i adresselinjen i din browser:<br />
+                  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email_change&next=/min-profil" style="color:#4f5d3a; word-break:break-all;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email_change&next=/min-profil</a>
+                </p>
+                <p style="margin:0 0 16px;">Får du denne e-mail på både din gamle og din nye adresse, skal du klikke på linket i dem begge.</p>
+                <p style="margin:0 0 16px;">Linket virker kun i begrænset tid og kan kun bruges én gang.</p>
+                <p style="margin:0 0 16px;">Har du ikke bedt om at ændre din e-mail, så klik ikke på linket – og skift gerne din adgangskode.</p>
+              </td>
+            </tr>
+          </table>
+          <p style="max-width:560px; margin:24px auto 0; font-size:16px; color:#474e49;">
+            Denne e-mail er sendt automatisk fra Stærk50.
+          </p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
