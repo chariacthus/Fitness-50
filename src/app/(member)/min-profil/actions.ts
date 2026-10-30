@@ -201,6 +201,17 @@ export async function resumeMembership(): Promise<FormState> {
   };
 }
 
+/**
+ * One form for "Opsig" and "Genoptag", so the outcome stays on screen when the
+ * page switches between the two after the change.
+ */
+export async function changeCancellation(_prev: FormState, formData: FormData): Promise<FormState> {
+  const mode = readText(formData, "mode");
+  if (mode === "cancel") return cancelMembership();
+  if (mode === "resume") return resumeMembership();
+  return failForm("Handlingen blev ikke genkendt. Genindlæs siden, og prøv igen.");
+}
+
 /** "Administrer betaling og kvitteringer" / "Opdater betalingskort": opens Stripe's customer portal. */
 export async function openBillingPortal(): Promise<FormState> {
   const userId = await getUserId();
@@ -327,6 +338,14 @@ export async function requestAccountDeletion(): Promise<FormState> {
   if (error) return failForm(dbErrorMessage(error, "Anmodningen kunne ikke sendes. Prøv igen."));
   revalidateProfile();
   return { ok: true, message: "Din anmodning om sletning er sendt. Du hører fra os, når den er behandlet." };
+}
+
+/** One form for sending and cancelling a deletion request (the outcome stays visible when the page switches). */
+export async function deletionRequestAction(prev: FormState, formData: FormData): Promise<FormState> {
+  const mode = readText(formData, "mode");
+  if (mode === "request") return requestAccountDeletion();
+  if (mode === "cancel") return cancelDataRequest(prev, formData);
+  return failForm("Handlingen blev ikke genkendt. Genindlæs siden, og prøv igen.");
 }
 
 export async function cancelDataRequest(_prev: FormState, formData: FormData): Promise<FormState> {

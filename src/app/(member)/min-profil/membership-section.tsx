@@ -11,7 +11,7 @@ import { ConfirmButton } from "@/components/ui/confirm-button";
 import { DetailList, Panel } from "@/components/ui/layout";
 import { MembershipBadge } from "@/components/ui/membership-badge";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { cancelMembership, openBillingPortal, resumeMembership } from "./actions";
+import { changeCancellation, openBillingPortal } from "./actions";
 
 export type PurchaseRow = { id: string; status: string; amount: number | null; created_at: string; paid_at: string | null; productName: string };
 
@@ -114,29 +114,32 @@ export function MembershipSection({
         {canUsePortal || (manageable && stripeReady && (state === "active" || state === "canceling")) ? (
           <div className="flex flex-col gap-3 border-t border-line pt-5 sm:flex-row sm:flex-wrap sm:items-start">
             {canUsePortal ? <PortalButton label="Administrer betaling og kvitteringer" /> : null}
-            {manageable && stripeReady && state === "active" ? (
-              <InlineActionForm action={cancelMembership} pendingText="Opsiger medlemskabet…">
-                <ConfirmButton
-                  title="Opsig dit medlemskab?"
-                  description={
-                    <div className="space-y-2">
-                      <p>
-                        Du har stadig adgang til og med{" "}
-                        {summary.current_period_end ? formatDate(summary.current_period_end) : "slutningen af den betalte periode"}. Derefter
-                        stopper medlemskabet, og du bliver ikke trukket flere gange.
-                      </p>
-                      <p>Du kan fortryde opsigelsen her på siden, så længe perioden ikke er slut.</p>
-                    </div>
-                  }
-                  confirmLabel="Ja, opsig medlemskabet"
-                >
-                  Opsig medlemskab
-                </ConfirmButton>
-              </InlineActionForm>
-            ) : null}
-            {manageable && stripeReady && state === "canceling" ? (
-              <InlineActionForm action={resumeMembership} pendingText="Genoptager medlemskabet…">
-                <SubmitButton pendingText="Genoptager…">Genoptag medlemskab</SubmitButton>
+            {manageable && stripeReady && (state === "active" || state === "canceling") ? (
+              <InlineActionForm
+                action={changeCancellation}
+                hidden={{ mode: state === "active" ? "cancel" : "resume" }}
+                pendingText={state === "active" ? "Opsiger medlemskabet…" : "Genoptager medlemskabet…"}
+              >
+                {state === "active" ? (
+                  <ConfirmButton
+                    title="Opsig dit medlemskab?"
+                    description={
+                      <div className="space-y-2">
+                        <p>
+                          Du har stadig adgang til og med{" "}
+                          {summary.current_period_end ? formatDate(summary.current_period_end) : "slutningen af den betalte periode"}. Derefter
+                          stopper medlemskabet, og du bliver ikke trukket flere gange.
+                        </p>
+                        <p>Du kan fortryde opsigelsen her på siden, så længe perioden ikke er slut.</p>
+                      </div>
+                    }
+                    confirmLabel="Ja, opsig medlemskabet"
+                  >
+                    Opsig medlemskab
+                  </ConfirmButton>
+                ) : (
+                  <SubmitButton pendingText="Genoptager…">Genoptag medlemskab</SubmitButton>
+                )}
               </InlineActionForm>
             ) : null}
           </div>
