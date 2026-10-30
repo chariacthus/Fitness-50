@@ -72,6 +72,21 @@ npx supabase link --project-ref <project-ref>
 npx supabase db push
 ```
 
+### 2.1b Updating an existing database (patches)
+
+If the database was created with an earlier `setup.sql`, run the files in
+`supabase/patches/` once each, in date order, in the SQL Editor. They are safe
+to run twice and never delete data.
+
+| Patch | What it does |
+| --- | --- |
+| `2026-10-30-security-fixes.sql` | Security fixes found by the database tests (RPC permissions for visitors, membership check without login, server-side message timestamps, admin access to replace site images) + privacy functions for Min profil |
+
+To start over completely instead, run `supabase/reset.sql` and then
+`supabase/setup.sql`. The reset removes all app tables, functions and policies,
+including hidden leftovers such as an `on_auth_user_created` trigger on
+`auth.users`. User accounts and uploaded files are kept.
+
 ### 2.2 Auth settings
 
 Follow [`docs/SUPABASE_AUTH.md`](docs/SUPABASE_AUTH.md): Site URL, redirect
@@ -178,10 +193,26 @@ Supabase stand-in (`tests/db/supabase-shim.sql`) plus all migrations, and
 check the Row Level Security rules as visitor, member, other member and admin.
 No Supabase project or Docker is needed.
 
+Current status: 36 test files, 545 tests, all passing (`npm test`).
+
 After changing a migration, regenerate the TypeScript database types:
 
 ```bash
 npm run db:types
+```
+
+### Promotional film (development only)
+
+`/promo` plays a Danish product film built from the real design system with
+sample data (every demo scene is labelled "Eksempel med testdata"). The route
+returns 404 in production. To render it to MP4 (needs ffmpeg with libx264):
+
+```bash
+npm run dev
+```
+
+```bash
+node scripts/record-promo.mjs http://localhost:3000 staerk50-praesentation.mp4
 ```
 
 ## 6. Environment variables
