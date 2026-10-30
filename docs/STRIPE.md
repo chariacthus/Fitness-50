@@ -217,5 +217,5 @@ Under **Admin → Priser og produkter**:
 - [ ] Handelsbetingelser og privatlivspolitik er udfyldt med rigtige oplysninger.
 - [ ] `NEXT_PUBLIC_SITE_URL` er det rigtige domæne (bruges i Stripes retur-links).
 - [ ] Gennemfør ét rigtigt køb med eget kort, og refunder det.
-- [ ] Åbn tilmelding under Admin → Priser og produkter.
+- [ ] Åbn tilmelding under Admin → Priser og produkter. Det registrerer samtidig, at siden nu kører med live-nøgler, så abonnementer og køb fra testperioden ikke længere giver adgang (det sker også automatisk ved den første live-hændelse fra Stripe).
 - [ ] Hold øje med Admin → Betalinger de første dage (fejlede beskeder vises der).

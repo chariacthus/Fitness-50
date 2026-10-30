@@ -30,6 +30,8 @@ export type SubscriptionLike = {
   id: string;
   status: string;
   customer: StripeRef;
+  /** True for live mode, false for test mode. */
+  livemode?: boolean | null;
   cancel_at_period_end?: boolean | null;
   cancel_at?: number | null;
   canceled_at?: number | null;
@@ -88,6 +90,8 @@ export type MappedSubscription = {
   current_period_end: string | null;
   amount: number | null;
   billing_interval: string | null;
+  /** Stripe mode of the subscription (null = unknown). Rows from the other mode give no access. */
+  livemode: boolean | null;
 };
 
 /** Id of a Stripe reference (string id or expanded object). */
@@ -183,6 +187,7 @@ export function mapStripeSubscription(subscription: SubscriptionLike): MappedSub
     current_period_end: period.end,
     amount: typeof price?.unit_amount === "number" ? price.unit_amount * quantity : null,
     billing_interval: billingIntervalFromRecurring(price?.recurring),
+    livemode: typeof subscription.livemode === "boolean" ? subscription.livemode : null,
   };
 }
 
@@ -211,11 +216,58 @@ export function metadataUuid(metadata: Record<string, string> | null | undefined
   return isUuid(value) ? value.toLowerCase() : null;
 }
 
-/** When access ends for a subscription that has been cancelled (earliest of cancel_at and period end). */
+/**
+ * When access ends for a subscription that has been cancelled: cancel_at, else
+ * the period end. Stripe also sets cancel_at for cancel-at-period-end, and a
+ * custom cancel date after the current period keeps the subscription renewing
+ * until then. Same rule as public._membership_state().
+ */
 export function accessEndsAt(row: Pick<MappedSubscription, "cancel_at" | "current_period_end">): string | null {
-  const candidates = [row.cancel_at, row.current_period_end].filter((v): v is string => Boolean(v));
-  if (candidates.length === 0) return null;
-  return candidates.reduce((min, v) => (Date.parse(v) < Date.parse(min) ? v : min));
+  return row.cancel_at ?? row.current_period_end ?? null;
+}
+
+/** Stripe statuses of a subscription that gives, or may still give, access. */
+const RUNNING_STATUSES = new Set(["active", "trialing", "past_due", "unpaid"]);
+/** Stripe statuses of a subscription that no longer gives access. */
+const ENDED_STATUSES = new Set(["canceled", "incomplete_expired", "paused"]);
+
+/**
+ * True when a stored status change means the subscription ended now, e.g.
+ * active → canceled when Stripe ends a cancelled subscription at the period
+ * end. The time-derived membership state already reads "expired" by then.
+ */
+export function subscriptionEnded(previousStatus: string | null | undefined, nextStatus: string): boolean {
+  return Boolean(previousStatus && RUNNING_STATUSES.has(previousStatus) && ENDED_STATUSES.has(nextStatus));
+}
+
+export type MembershipCheckoutBlock = "active" | "past_due" | "pending";
+
+/**
+ * Why no new membership checkout may start, given the statuses of the
+ * customer's subscriptions in Stripe (also ones the webhook has not stored
+ * yet), or null when it may. A member never pays for two subscriptions.
+ */
+export function membershipCheckoutBlock(statuses: readonly string[]): MembershipCheckoutBlock | null {
+  if (statuses.some((s) => s === "active" || s === "trialing")) return "active";
+  if (statuses.some((s) => s === "past_due" || s === "unpaid")) return "past_due";
+  if (statuses.includes("incomplete")) return "pending";
+  return null;
+}
+
+type PaidPurchaseLike = { id: string; paid_at: string | null; created_at: string };
+
+/**
+ * True when another paid or granted purchase of the same product was paid
+ * (or granted) before this one, so this payment is a duplicate. Ties are
+ * broken by id, so exactly one of two purchases counts as the first.
+ */
+export function isDuplicatePurchase(purchase: { id: string; paid_at: string }, others: readonly PaidPurchaseLike[]): boolean {
+  const paidAt = Date.parse(purchase.paid_at);
+  return others.some((other) => {
+    if (other.id === purchase.id) return false;
+    const otherAt = Date.parse(other.paid_at ?? other.created_at);
+    return otherAt < paidAt || (otherAt === paidAt && other.id < purchase.id);
+  });
 }
 
 type ComparableRow = Partial<Record<keyof MappedSubscription | "user_id" | "product_id", unknown>>;

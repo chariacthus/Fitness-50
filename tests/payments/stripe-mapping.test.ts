@@ -3,14 +3,17 @@ import type Stripe from "stripe";
 import {
   accessEndsAt,
   billingIntervalFromRecurring,
+  isDuplicatePurchase,
   isUuid,
   mapStripeSubscription,
   mapSubscriptionStatus,
+  membershipCheckoutBlock,
   metadataUuid,
   priceMatches,
   recurringParamsForInterval,
   sameSubscriptionValues,
   stripeId,
+  subscriptionEnded,
   subscriptionIdFromInvoice,
   subscriptionPeriod,
   type SubscriptionLike,
@@ -29,6 +32,7 @@ function newShapeSubscription(overrides: Partial<SubscriptionLike> = {}): Subscr
     id: "sub_1QnewShape",
     status: "active",
     customer: "cus_RealCustomer1",
+    livemode: true,
     cancel_at_period_end: false,
     cancel_at: null,
     canceled_at: null,
@@ -87,6 +91,7 @@ describe("mapStripeSubscription", () => {
       current_period_end: "2026-11-29T10:00:00.000Z",
       amount: 29900,
       billing_interval: "month",
+      livemode: true,
     });
   });
 
@@ -98,6 +103,13 @@ describe("mapStripeSubscription", () => {
     expect(mapped.status).toBe("past_due");
     expect(mapped.billing_interval).toBe("quarter");
     expect(mapped.amount).toBe(79900);
+    expect(mapped.livemode).toBeNull(); // not in the payload → unknown, never guessed
+  });
+
+  it("maps livemode, so test-mode subscriptions can be told apart after go-live", () => {
+    expect(mapStripeSubscription(newShapeSubscription({ livemode: false })).livemode).toBe(false);
+    expect(mapStripeSubscription(newShapeSubscription({ livemode: true })).livemode).toBe(true);
+    expect(mapStripeSubscription(newShapeSubscription({ livemode: null })).livemode).toBeNull();
   });
 
   it("maps cancellation fields", () => {
@@ -234,9 +246,14 @@ describe("helpers", () => {
     expect(isUuid("not-a-uuid")).toBe(false);
   });
 
-  it("accessEndsAt picks the earliest of cancel_at and period end", () => {
+  it("accessEndsAt uses cancel_at, else the period end (same rule as _membership_state)", () => {
+    // An earlier cancel date still ends access first.
     expect(accessEndsAt({ cancel_at: "2026-11-15T00:00:00.000Z", current_period_end: "2026-11-29T10:00:00.000Z" })).toBe(
       "2026-11-15T00:00:00.000Z",
+    );
+    // A custom cancel date after the current period: the subscription renews until then.
+    expect(accessEndsAt({ cancel_at: "2027-01-29T10:00:00.000Z", current_period_end: "2026-11-29T10:00:00.000Z" })).toBe(
+      "2027-01-29T10:00:00.000Z",
     );
     expect(accessEndsAt({ cancel_at: null, current_period_end: "2026-11-29T10:00:00.000Z" })).toBe("2026-11-29T10:00:00.000Z");
     expect(accessEndsAt({ cancel_at: null, current_period_end: null })).toBeNull();
@@ -256,5 +273,65 @@ describe("helpers", () => {
     expect(sameSubscriptionValues({ ...dbRow, payment_failed_at: "2026-11-01T00:00:00+00:00" } as never, { payment_failed_at: null } as never)).toBe(
       false,
     );
+  });
+});
+
+describe("subscriptionEnded", () => {
+  it("is true when a running subscription is stored as ended", () => {
+    for (const previous of ["active", "trialing", "past_due", "unpaid"]) {
+      for (const next of ["canceled", "incomplete_expired", "paused"]) {
+        expect(subscriptionEnded(previous, next)).toBe(true);
+      }
+    }
+  });
+
+  it("is false for a new row, an unchanged end or a subscription that keeps running", () => {
+    expect(subscriptionEnded(null, "canceled")).toBe(false); // first time we see it
+    expect(subscriptionEnded("canceled", "canceled")).toBe(false); // already ended – no second message
+    expect(subscriptionEnded("incomplete", "incomplete_expired")).toBe(false); // never started
+    expect(subscriptionEnded("active", "past_due")).toBe(false);
+    expect(subscriptionEnded("past_due", "active")).toBe(false);
+  });
+});
+
+describe("membershipCheckoutBlock", () => {
+  it("blocks a second membership while one runs in Stripe", () => {
+    expect(membershipCheckoutBlock(["canceled", "active"])).toBe("active");
+    expect(membershipCheckoutBlock(["trialing"])).toBe("active");
+    expect(membershipCheckoutBlock(["past_due"])).toBe("past_due");
+    expect(membershipCheckoutBlock(["unpaid", "canceled"])).toBe("past_due");
+    expect(membershipCheckoutBlock(["incomplete"])).toBe("pending");
+    // A running subscription wins over one that waits for payment.
+    expect(membershipCheckoutBlock(["incomplete", "past_due", "active"])).toBe("active");
+  });
+
+  it("allows a new membership when every earlier one has ended", () => {
+    expect(membershipCheckoutBlock([])).toBeNull();
+    expect(membershipCheckoutBlock(["canceled", "incomplete_expired", "paused"])).toBeNull();
+  });
+});
+
+describe("isDuplicatePurchase", () => {
+  const purchase = { id: "b0000000-0000-4000-8000-000000000000", paid_at: "2026-10-30T12:00:00.000Z" };
+
+  it("is true when another purchase was paid or granted before this one", () => {
+    expect(isDuplicatePurchase(purchase, [{ id: "a1", paid_at: "2026-10-30T11:59:00+00:00", created_at: "2026-10-30T11:50:00+00:00" }])).toBe(
+      true,
+    );
+    // A manual grant has no paid_at – its creation time counts.
+    expect(isDuplicatePurchase(purchase, [{ id: "g1", paid_at: null, created_at: "2026-10-01T09:00:00+00:00" }])).toBe(true);
+  });
+
+  it("is false for the first payment, so exactly one of two purchases runs the normal flow", () => {
+    expect(isDuplicatePurchase(purchase, [])).toBe(false);
+    const later = { id: "c1", paid_at: "2026-10-30T12:00:01.000Z", created_at: "2026-10-30T11:00:00.000Z" };
+    expect(isDuplicatePurchase(purchase, [later])).toBe(false);
+    expect(isDuplicatePurchase({ id: later.id, paid_at: later.paid_at }, [{ ...purchase, created_at: purchase.paid_at }])).toBe(true);
+    // Same instant: the smaller id is the first one.
+    const tie = { id: "c0000000-0000-4000-8000-000000000000", paid_at: purchase.paid_at, created_at: purchase.paid_at };
+    expect(isDuplicatePurchase(purchase, [tie])).toBe(false);
+    expect(isDuplicatePurchase({ id: tie.id, paid_at: tie.paid_at }, [{ ...purchase, created_at: purchase.paid_at }])).toBe(true);
+    // The purchase itself is never its own duplicate.
+    expect(isDuplicatePurchase(purchase, [{ ...purchase, created_at: purchase.paid_at }])).toBe(false);
   });
 });

@@ -8,6 +8,7 @@ import { BUCKETS } from "@/lib/storage";
 import { removeUploadedFile } from "@/lib/upload-client";
 import { browserSigner, loadMessageContext, type MessageContext } from "@/lib/community/data";
 import { firstUnreadId, groupByDay, replyQuoteText } from "@/lib/community/grouping";
+import { listenForHiddenMessages, withoutKey } from "@/lib/community/moderation";
 import {
   COMMUNITY_MESSAGE_COLUMNS,
   COMMUNITY_PAGE_SIZE,
@@ -45,8 +46,9 @@ type Props = {
 /**
  * The community group chat. Initial messages come from the server; new and
  * changed messages arrive through Supabase Realtime (which applies the same
- * Row Level Security as normal reads). Sending, deleting and paging use the
- * browser client as the logged-in user.
+ * Row Level Security as normal reads). Messages a moderator hides are removed
+ * after a broadcast from the server (see lib/community/moderation). Sending,
+ * deleting and paging use the browser client as the logged-in user.
  */
 export function CommunityChat({
   viewerId,
@@ -148,6 +150,11 @@ export function CommunityChat({
         void markRead();
       }
     };
+    // Removes a hidden message from the chat and from the quotes in replies to it.
+    const dropMessage = (id: string) => {
+      setMessages((prev) => prev.filter((m) => m.id !== id));
+      setQuoted((prev) => withoutKey(prev, id));
+    };
 
     // A unique topic per subscription: supabase-js would otherwise hand back a channel
     // that is still closing (fast remounts) and the page would get no live updates.
@@ -175,8 +182,8 @@ export function CommunityChat({
         (payload) => {
           const row = toCommunityMessage(payload.new);
           if (row.hidden_at) {
-            // Hidden by a moderator: remove it from the chat.
-            setMessages((prev) => prev.filter((m) => m.id !== row.id));
+            // Hidden by a moderator (only administrators get this event): remove it from the chat.
+            dropMessage(row.id);
             return;
           }
           setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev.map((m) => (m.id === row.id ? row : m)) : prev));
@@ -188,8 +195,20 @@ export function CommunityChat({
         else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") setLiveFailed(true);
       });
 
+    // Members never get the UPDATE above when a moderator hides a message (they may no
+    // longer read the row), so the server also broadcasts its id. Anyone can send such a
+    // broadcast, so the message is only removed when our own query (RLS) no longer finds it.
+    const stopModeration = listenForHiddenMessages(supabase, (id) => {
+      if (!knownMessages.current.has(id)) return;
+      void (async () => {
+        const { data, error } = await supabase.from("community_messages").select("id").eq("id", id).is("hidden_at", null).maybeSingle();
+        if (!error && !data) dropMessage(id);
+      })();
+    });
+
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
+      stopModeration();
       document.removeEventListener("visibilitychange", onVisibility);
       clearTimeout(announceTimer);
       clearTimeout(markTimer);

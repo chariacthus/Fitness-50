@@ -7,6 +7,7 @@ import {
   mapStripeSubscription,
   metadataUuid,
   sameSubscriptionValues,
+  subscriptionEnded,
   type SubscriptionLike,
 } from "@/lib/payments/stripe-mapping";
 import {
@@ -50,19 +51,33 @@ async function resolveProductId(admin: AdminClient, priceId: string | null, meta
   return null;
 }
 
-/** Runs the member/admin side effects for a change in membership state. */
+/**
+ * Runs the member/admin side effects for a change in membership state.
+ * `previousStatus` is the stored Stripe status before this write (null for a
+ * new row): a cancelled subscription that Stripe ends at the period end
+ * already reads "expired" before the write, so the status change is what
+ * tells us that it ended now.
+ */
 async function applyTransition(
   admin: AdminClient,
   userId: string,
   before: MembershipState,
   after: MembershipState,
-  row: { cancel_at: string | null; current_period_end: string | null },
+  previousStatus: string | null,
+  row: { status: string; cancel_at: string | null; current_period_end: string | null },
 ) {
-  if (before === after || before === "admin" || after === "admin") return;
+  if (before === "admin" || after === "admin") return;
+  const changed = before !== after;
   const wasEntitled = isEntitledState(before);
-  if (!wasEntitled && isEntitledState(after)) await onMembershipActivated(admin, userId);
-  if (before !== "canceling" && after === "canceling") await onMembershipCanceling(admin, userId, accessEndsAt(row));
-  if (after === "expired" && (wasEntitled || before === "past_due")) await onMembershipExpired(userId);
+  if (changed && !wasEntitled && isEntitledState(after)) await onMembershipActivated(admin, userId);
+  if (changed && before !== "canceling" && after === "canceling") await onMembershipCanceling(admin, userId, accessEndsAt(row));
+  const stateEnded = changed && (wasEntitled || before === "past_due");
+  if (after === "expired" && (stateEnded || subscriptionEnded(previousStatus, row.status))) await onMembershipExpired(userId);
+}
+
+/** True when an insert failed because the user no longer exists (account deleted). */
+function isMissingUser(error: { code?: string; message?: string; details?: string | null }) {
+  return error.code === "23503" && `${error.message ?? ""} ${error.details ?? ""}`.includes("user_id");
 }
 
 /**
@@ -73,12 +88,17 @@ async function applyTransition(
  * same subscription. Writes are therefore conditional (insert, or update only
  * if the row is unchanged since we read it), so exactly one delivery performs
  * a given change and its notifications – never two.
+ *
+ * Returns null when the subscription belongs to no user of this site: no user
+ * could be found, or the account has been deleted (the deletion cancels the
+ * subscription, and Stripe's event arrives afterwards). The event is then
+ * ignored instead of failing and being retried for days.
  */
 export async function syncSubscription(
   admin: AdminClient,
   subscription: SubscriptionLike,
   hints: { userId?: string | null } = {},
-): Promise<string> {
+): Promise<string | null> {
   const mapped = mapStripeSubscription(subscription);
   const resolvedUserId = await resolveUserId(admin, subscription, mapped.provider_customer_id, hints.userId);
   const resolvedProductId = await resolveProductId(
@@ -98,7 +118,10 @@ export async function syncSubscription(
 
     // A subscription never moves between users.
     const userId = existing?.user_id ?? resolvedUserId;
-    if (!userId) throw new Error(`Ingen bruger fundet for Stripe-abonnement ${mapped.provider_subscription_id}.`);
+    if (!userId) {
+      console.warn("[stripe-webhook] ingen bruger fundet for abonnement", mapped.provider_subscription_id);
+      return null;
+    }
 
     const before = await membershipStateOf(admin, userId);
     const values = {
@@ -113,6 +136,10 @@ export async function syncSubscription(
       const insert: TablesInsert<"subscriptions"> = { provider: "stripe", ...values };
       const { error } = await admin.from("subscriptions").insert(insert);
       if (error?.code === "23505") continue; // inserted by a parallel delivery – read again
+      if (error && isMissingUser(error)) {
+        console.warn("[stripe-webhook] brugeren findes ikke længere – abonnement ignoreres", mapped.provider_subscription_id);
+        return null;
+      }
       if (error) throw new Error(`subscriptions insert: ${error.message}`);
     } else if (sameSubscriptionValues(existing, values)) {
       return userId; // nothing changed
@@ -128,7 +155,7 @@ export async function syncSubscription(
     }
 
     const after = await membershipStateOf(admin, userId);
-    await applyTransition(admin, userId, before, after, values);
+    await applyTransition(admin, userId, before, after, existing?.status ?? null, values);
     return userId;
   }
   throw new Error(`Abonnement ${mapped.provider_subscription_id} blev ændret af flere hændelser samtidig. Stripe prøver igen.`);

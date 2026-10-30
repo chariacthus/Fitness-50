@@ -279,11 +279,11 @@ export function StepFields({ stepKey, values, errors, coachName, businessName, h
           />
           <CheckboxField
             name="health_consent"
-            label={`Jeg giver samtykke til, at ${businessName} behandler de helbredsoplysninger, jeg skriver her, så ${coachName} kan tage hensyn til dem i min træning. Jeg kan til enhver tid trække samtykket tilbage under Min profil.`}
+            label={`Jeg giver samtykke til, at ${businessName} behandler de helbredsoplysninger, jeg giver her, så ${coachName} kan tage hensyn til dem i min træning. Jeg kan til enhver tid trække samtykket tilbage under Min profil.`}
             hint={
               hadHealthConsent
-                ? "Vil du trække samtykket tilbage, så fjern fluebenet og slet teksten ovenfor. Så sletter vi oplysningerne."
-                : "Kun nødvendigt, hvis du skriver noget i feltet ovenfor."
+                ? "Vil du trække samtykket tilbage, så fjern fluebenet, slet teksten ovenfor og vælg et andet svar end »Ja«. Så sletter vi oplysningerne."
+                : "Nødvendigt, hvis du svarer »Ja« eller skriver noget i feltet ovenfor."
             }
             defaultChecked={values.health_consent === true}
             error={e.health_consent}

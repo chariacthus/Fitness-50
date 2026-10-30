@@ -2,8 +2,8 @@ import "server-only";
 import type Stripe from "stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/database.types";
-import { metadataUuid, stripeId, subscriptionIdFromInvoice } from "@/lib/payments/stripe-mapping";
-import { onNutritionPurchased, onRenewalPaymentFailed } from "@/lib/payments/side-effects";
+import { isDuplicatePurchase, metadataUuid, stripeId, subscriptionIdFromInvoice } from "@/lib/payments/stripe-mapping";
+import { onDuplicateNutritionPurchase, onNutritionPurchased, onRenewalPaymentFailed } from "@/lib/payments/side-effects";
 import { syncSubscription } from "@/lib/payments/subscription-sync";
 
 // Processes verified Stripe webhook events. This is the ONLY place where
@@ -30,6 +30,25 @@ export const HANDLED_EVENT_TYPES = [
   "invoice.payment_failed",
   "charge.refunded",
 ] as const;
+
+/**
+ * Remembers which Stripe mode (live or test) the site runs in, from the mode of
+ * signature-verified events. _membership_state() and _has_addon() then ignore
+ * subscriptions and purchases from the other mode, e.g. test purchases after
+ * the switch to live keys. Best effort: it never blocks the event itself.
+ */
+async function rememberStripeMode(admin: AdminClient, livemode: boolean) {
+  try {
+    const { error } = await admin
+      .from("admin_settings")
+      .update({ stripe_livemode: livemode })
+      .eq("id", 1)
+      .not("stripe_livemode", "is", livemode); // only when it differs (or is unknown)
+    if (error) console.warn("[stripe-webhook] kunne ikke gemme Stripe-tilstanden", error.message);
+  } catch (error) {
+    console.warn("[stripe-webhook] kunne ikke gemme Stripe-tilstanden", error instanceof Error ? error.message : error);
+  }
+}
 
 async function recordEvent(admin: AdminClient, event: Stripe.Event): Promise<{ id: string; alreadyHandled: boolean }> {
   const { data: inserted, error } = await admin
@@ -81,7 +100,7 @@ async function finishEvent(
 // --- Checkout --------------------------------------------------------------
 
 async function findPurchase(admin: AdminClient, session: Stripe.Checkout.Session) {
-  const select = "id, user_id, status, amount, products(slug)";
+  const select = "id, user_id, product_id, status, amount, products(slug)";
   const { data: bySession, error } = await admin
     .from("purchases")
     .select(select)
@@ -94,6 +113,23 @@ async function findPurchase(admin: AdminClient, session: Stripe.Checkout.Session
   const { data: byId, error: idError } = await admin.from("purchases").select(select).eq("id", purchaseId).maybeSingle();
   if (idError) throw new Error(`purchases: ${idError.message}`);
   return byId;
+}
+
+/** True when the user already had a paid or granted purchase of this product before this payment. */
+async function alreadyPurchased(admin: AdminClient, purchase: { id: string; user_id: string; product_id: string }, paidAt: string) {
+  const { data, error } = await admin
+    .from("purchases")
+    .select("id, paid_at, created_at")
+    .eq("user_id", purchase.user_id)
+    .eq("product_id", purchase.product_id)
+    .in("status", ["paid", "granted"])
+    .neq("id", purchase.id);
+  if (error) {
+    // The purchase is already marked as paid – notify as usual rather than not at all.
+    console.warn("[stripe-webhook] kunne ikke tjekke for dobbeltkøb", purchase.id, error.message);
+    return false;
+  }
+  return isDuplicatePurchase({ id: purchase.id, paid_at: paidAt }, data ?? []);
 }
 
 async function handlePurchaseSession(ctx: Ctx, session: Stripe.Checkout.Session, type: string): Promise<HandlerResult> {
@@ -110,12 +146,13 @@ async function handlePurchaseSession(ctx: Ctx, session: Stripe.Checkout.Session,
   }
 
   const paymentIntentId = stripeId(session.payment_intent);
+  const livemode = session.livemode;
   const now = new Date().toISOString();
 
   if (type === "checkout.session.async_payment_failed") {
     const { error } = await ctx.admin
       .from("purchases")
-      .update({ status: "failed", provider_checkout_session_id: session.id, provider_payment_intent_id: paymentIntentId })
+      .update({ status: "failed", provider_checkout_session_id: session.id, provider_payment_intent_id: paymentIntentId, livemode })
       .eq("id", purchase.id)
       .in("status", ["pending", "canceled"]);
     if (error) throw new Error(`purchases: ${error.message}`);
@@ -123,7 +160,7 @@ async function handlePurchaseSession(ctx: Ctx, session: Stripe.Checkout.Session,
   }
 
   if (type === "checkout.session.expired") {
-    const { error } = await ctx.admin.from("purchases").update({ status: "canceled" }).eq("id", purchase.id).eq("status", "pending");
+    const { error } = await ctx.admin.from("purchases").update({ status: "canceled", livemode }).eq("id", purchase.id).eq("status", "pending");
     if (error) throw new Error(`purchases: ${error.message}`);
     return { userId: purchase.user_id };
   }
@@ -133,7 +170,7 @@ async function handlePurchaseSession(ctx: Ctx, session: Stripe.Checkout.Session,
     // An asynchronous payment method is still processing; wait for async_payment_succeeded/failed.
     const { error } = await ctx.admin
       .from("purchases")
-      .update({ provider_checkout_session_id: session.id, provider_payment_intent_id: paymentIntentId })
+      .update({ provider_checkout_session_id: session.id, provider_payment_intent_id: paymentIntentId, livemode })
       .eq("id", purchase.id);
     if (error) throw new Error(`purchases: ${error.message}`);
     return { userId: purchase.user_id };
@@ -148,6 +185,7 @@ async function handlePurchaseSession(ctx: Ctx, session: Stripe.Checkout.Session,
       provider_checkout_session_id: session.id,
       provider_payment_intent_id: paymentIntentId,
       amount: session.amount_total ?? purchase.amount,
+      livemode,
     })
     .eq("id", purchase.id)
     .in("status", ["pending", "failed", "canceled"])
@@ -156,9 +194,17 @@ async function handlePurchaseSession(ctx: Ctx, session: Stripe.Checkout.Session,
 
   const slug = (purchase.products as { slug: string } | null)?.slug;
   if (paid && paid.length > 0 && slug === "kostplan") {
-    await onNutritionPurchased(ctx.admin, purchase.user_id);
+    // A second payment for a plan the member already has must not start the
+    // nutrition flow again – the administrators are asked to refund it instead.
+    if (await alreadyPurchased(ctx.admin, purchase, now)) await onDuplicateNutritionPurchase(ctx.admin, purchase.user_id);
+    else await onNutritionPurchased(ctx.admin, purchase.user_id);
   }
   return { userId: purchase.user_id };
+}
+
+/** Result of a subscription sync: ignored when the subscription belongs to no (longer existing) user. */
+function synced(userId: string | null): HandlerResult {
+  return userId ? { userId } : { ignored: true };
 }
 
 async function handleCheckoutSession(ctx: Ctx, session: Stripe.Checkout.Session, type: string): Promise<HandlerResult> {
@@ -169,7 +215,7 @@ async function handleCheckoutSession(ctx: Ctx, session: Stripe.Checkout.Session,
   if (!subscriptionId) return { ignored: true };
   const hintUserId = metadataUuid(session.metadata, "user_id");
   const latest = await ctx.stripe.subscriptions.retrieve(subscriptionId);
-  return { userId: await syncSubscription(ctx.admin, latest, { userId: hintUserId }) };
+  return synced(await syncSubscription(ctx.admin, latest, { userId: hintUserId }));
 }
 
 // --- Invoices ----------------------------------------------------------------
@@ -179,6 +225,7 @@ async function handleInvoicePaymentFailed(ctx: Ctx, invoice: Stripe.Invoice): Pr
   if (!subscriptionId) return { ignored: true };
   const latest = await ctx.stripe.subscriptions.retrieve(subscriptionId);
   const userId = await syncSubscription(ctx.admin, latest);
+  if (!userId) return { ignored: true };
 
   // The very first payment is handled on the Checkout page itself.
   if (invoice.billing_reason === "subscription_create") return { userId };
@@ -203,6 +250,7 @@ async function handleInvoicePaid(ctx: Ctx, invoice: Stripe.Invoice): Promise<Han
   if (!subscriptionId) return { ignored: true };
   const latest = await ctx.stripe.subscriptions.retrieve(subscriptionId);
   const userId = await syncSubscription(ctx.admin, latest);
+  if (!userId) return { ignored: true };
   const { error } = await ctx.admin
     .from("subscriptions")
     .update({ payment_failed_at: null })
@@ -254,12 +302,12 @@ async function handleEvent(ctx: Ctx, event: Stripe.Event): Promise<HandlerResult
     case "customer.subscription.resumed": {
       // Events can arrive out of order – always store the latest state from Stripe.
       const latest = await ctx.stripe.subscriptions.retrieve(event.data.object.id);
-      return { userId: await syncSubscription(ctx.admin, latest) };
+      return synced(await syncSubscription(ctx.admin, latest));
     }
 
     case "customer.subscription.deleted":
       // The event carries the final state of the ended subscription.
-      return { userId: await syncSubscription(ctx.admin, event.data.object) };
+      return synced(await syncSubscription(ctx.admin, event.data.object));
 
     case "invoice.payment_failed":
       return handleInvoicePaymentFailed(ctx, event.data.object);
@@ -284,6 +332,9 @@ export async function processStripeEvent(stripe: Stripe, event: Stripe.Event): P
   let recordId: string;
   try {
     admin = createAdminClient();
+    // Before the event is handled: the membership state read while handling it
+    // depends on the mode.
+    await rememberStripeMode(admin, event.livemode);
     const record = await recordEvent(admin, event);
     if (record.alreadyHandled) return { status: 200, body: { received: true, duplicate: true } };
     recordId = record.id;

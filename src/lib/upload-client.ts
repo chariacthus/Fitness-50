@@ -11,6 +11,9 @@ export type UploadProgress = { uploaded: number; total: number; percent: number 
  * Resumable (TUS) upload directly from the browser to Supabase Storage.
  * The file is streamed in 6 MB chunks – it never passes through our server.
  * Storage RLS decides whether the logged-in user may write to `bucket/path`.
+ * An interrupted chunk is resumed by the automatic retries of this attempt.
+ * A new attempt always starts a fresh upload at `path`: a stored earlier
+ * upload would finish at its old object path, not at the one we return.
  * https://supabase.com/docs/guides/storage/uploads/resumable-uploads
  */
 export async function uploadFile({
@@ -41,7 +44,8 @@ export async function uploadFile({
         "x-upsert": "false",
       },
       uploadDataDuringCreation: true,
-      removeFingerprintOnSuccess: true,
+      // Never resume across attempts (see above). Retries within this attempt still resume.
+      storeFingerprintForResuming: false,
       metadata: {
         bucketName: bucket,
         objectName: path,
@@ -66,13 +70,7 @@ export async function uploadFile({
       reject(new Error("Upload annulleret."));
     });
 
-    upload
-      .findPreviousUploads()
-      .then((previous) => {
-        if (previous.length) upload.resumeFromPreviousUpload(previous[0]);
-        upload.start();
-      })
-      .catch(() => upload.start());
+    upload.start();
   });
 }
 

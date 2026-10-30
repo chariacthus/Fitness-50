@@ -1,9 +1,11 @@
 import { z } from "zod";
+import { phoneSchema } from "@/lib/profile/schemas";
 
 // Shared contract for the onboarding questionnaire: used by the member form
 // (validation per step) and by the admin views (labels + readable answers).
-// Health information is NOT part of `answers`; it is stored separately in
-// onboarding_submissions.health_info and only with explicit consent.
+// The health description is NOT part of `answers`; it is stored separately in
+// onboarding_submissions.health_info and only with explicit consent. The
+// answer has_limitations = "ja" is kept in `answers`, also only with consent.
 
 export const EXPERIENCE_OPTIONS = [
   { value: "ingen", label: "Ingen eller næsten ingen erfaring" },
@@ -116,7 +118,8 @@ export const basicSchema = z.object({
   age: z.coerce.number({ error: "Skriv din alder som et tal" }).int("Skriv din alder som et helt tal").min(18, "Alderen skal være mindst 18").max(110, "Tjek venligst alderen").optional(),
   training_experience: z.enum(values(EXPERIENCE_OPTIONS), { error: "Vælg din træningserfaring" }),
   contact_preference: z.enum(values(CONTACT_OPTIONS), { error: "Vælg hvordan Christian bedst kontakter dig" }),
-  phone: optionalText(40),
+  // Same rule as on /min-profil: both write profile_private.phone.
+  phone: phoneSchema.optional(),
 });
 
 export const goalsSchema = z.object({
@@ -145,7 +148,11 @@ export const preferencesSchema = z.object({
   previous_experience: optionalText(1000),
 });
 
-/** Step F. `health_info` and `health_consent` go to their own columns, not `answers`. */
+/**
+ * Step F. `health_info` and `health_consent` go to their own columns, not `answers`.
+ * Both a description and the answer "ja" (there is an injury or limitation) are
+ * health information, so each needs consent. The database enforces the same.
+ */
 export const healthSchema = z
   .object({
     has_limitations: z.enum(values(LIMITATION_OPTIONS), { error: "Vælg en mulighed" }),
@@ -154,6 +161,10 @@ export const healthSchema = z
   })
   .refine((v) => !(v.health_info && v.health_info.trim().length > 0) || v.health_consent, {
     message: "Du skal give samtykke, før vi kan gemme oplysninger om skader eller begrænsninger",
+    path: ["health_consent"],
+  })
+  .refine((v) => v.has_limitations !== "ja" || v.health_consent, {
+    message: "Har du svaret ja, skal du give samtykke. Vil du ikke det, så vælg »Det vil jeg helst ikke skrive her«.",
     path: ["health_consent"],
   });
 

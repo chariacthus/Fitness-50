@@ -126,6 +126,19 @@ describe("validateStep", () => {
     if (result.ok) expect(result.data).toMatchObject({ full_name: "Jens Hansen", age: 58, phone: "12 34 56 78" });
   });
 
+  it("rejects a phone number the profile page would refuse", () => {
+    const base = { full_name: "Jens Hansen", training_experience: "lidt", contact_preference: "telefon" };
+    const strict = validateStep("basic", { ...base, phone: "1234" }, "strict");
+    expect(strict.ok).toBe(false);
+    if (!strict.ok) expect(strict.fieldErrors.phone).toBe("Skriv et telefonnummer med cifre, fx 12 34 56 78.");
+    const lenient = validateStep("basic", { ...base, phone: "ring efter kl. 17" }, "lenient");
+    expect(lenient.ok).toBe(true);
+    if (lenient.ok) {
+      expect(lenient.skipped).toContain("phone");
+      expect(lenient.data).not.toHaveProperty("phone");
+    }
+  });
+
   it("rejects an age that is not plausible", () => {
     const result = validateStep("basic", { full_name: "Jens", age: "12", training_experience: "lidt", contact_preference: "email" }, "strict");
     expect(result.ok).toBe(false);
@@ -157,6 +170,20 @@ describe("validateStep", () => {
     }
     expect(validateStep("health", { ...input, health_consent: true }, "strict").ok).toBe(true);
     expect(validateStep("health", { has_limitations: "nej", health_consent: false }, "strict").ok).toBe(true);
+  });
+
+  it("requires consent for the answer 'ja' – in every mode, on the consent field", () => {
+    const input = { has_limitations: "ja", health_consent: false };
+    for (const mode of ["strict", "lenient"] as const) {
+      const result = validateStep("health", input, mode);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.fieldErrors.health_consent).toMatch(/samtykke/);
+        expect(result.fieldErrors.health_consent).toMatch(/Det vil jeg helst ikke skrive her/);
+      }
+    }
+    expect(validateStep("health", { ...input, health_consent: true }, "strict").ok).toBe(true);
+    expect(validateStep("health", { has_limitations: "vil_ikke_oplyse", health_consent: false }, "lenient").ok).toBe(true);
   });
 
   it("shows the consent error together with other errors", () => {

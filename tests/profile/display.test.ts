@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { exportFileName, formatCard, paymentMethodLabel, sortDataRequests } from "@/lib/profile/display";
-import { changePasswordSchema, isOwnAvatarPath, profileAuthErrorMessage, profileSchema } from "@/lib/profile/schemas";
+import { basicSchema } from "@/lib/onboarding/schema";
+import { changePasswordSchema, isOwnAvatarPath, phoneSchema, profileAuthErrorMessage, profileSchema } from "@/lib/profile/schemas";
 
 describe("formatCard", () => {
   it("shows brand, last four digits and expiry", () => {
@@ -83,6 +84,17 @@ describe("profileSchema", () => {
     expect(profileSchema.safeParse({ full_name: "Jens", bio: "x".repeat(500), phone: "+45 12 34 56 78", contact_preference: "telefon" }).success).toBe(true);
     expect(profileSchema.safeParse({ full_name: "Jens", bio: "", phone: "ring til mig", contact_preference: "" }).success).toBe(false);
     expect(profileSchema.safeParse({ full_name: "Jens", bio: "", phone: "", contact_preference: "brevdue" }).success).toBe(false);
+  });
+
+  it("uses the same phone rule as onboarding step A, so both accept and refuse the same numbers", () => {
+    const step = { full_name: "Jens Hansen", training_experience: "lidt", contact_preference: "telefon" };
+    for (const phone of ["", "12 34 56 78", "+45 12345678", "(+45) 12-34-56-78", "1234", "20 30 40 50 (arbejde)", "1".repeat(41)]) {
+      const accepted = phoneSchema.safeParse(phone).success;
+      expect(profileSchema.safeParse({ full_name: "Jens", bio: "", phone, contact_preference: "" }).success, phone).toBe(accepted);
+      expect(basicSchema.safeParse({ ...step, phone }).success, phone).toBe(accepted);
+    }
+    expect(phoneSchema.safeParse("1234").success).toBe(false);
+    expect(phoneSchema.safeParse("12 34 56 78").success).toBe(true);
   });
 });
 

@@ -19,6 +19,7 @@ export type Database = {
           data_retention_months: number;
           updated_at: string;
           updated_by: string | null;
+          stripe_livemode: boolean | null;
         };
         Insert: {
           id?: number;
@@ -31,6 +32,7 @@ export type Database = {
           data_retention_months?: number;
           updated_at?: string;
           updated_by?: string | null;
+          stripe_livemode?: boolean | null;
         };
         Update: {
           id?: number;
@@ -43,6 +45,7 @@ export type Database = {
           data_retention_months?: number;
           updated_at?: string;
           updated_by?: string | null;
+          stripe_livemode?: boolean | null;
         };
         Relationships: [];
       };
@@ -887,6 +890,7 @@ export type Database = {
           refunded_at: string | null;
           created_at: string;
           updated_at: string;
+          livemode: boolean | null;
         };
         Insert: {
           id?: string;
@@ -904,6 +908,7 @@ export type Database = {
           refunded_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          livemode?: boolean | null;
         };
         Update: {
           id?: string;
@@ -921,6 +926,7 @@ export type Database = {
           refunded_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          livemode?: boolean | null;
         };
         Relationships: [
           {
@@ -1091,6 +1097,7 @@ export type Database = {
           billing_interval: string | null;
           created_at: string;
           updated_at: string;
+          livemode: boolean | null;
         };
         Insert: {
           id?: string;
@@ -1112,6 +1119,7 @@ export type Database = {
           billing_interval?: string | null;
           created_at?: string;
           updated_at?: string;
+          livemode?: boolean | null;
         };
         Update: {
           id?: string;
@@ -1133,6 +1141,7 @@ export type Database = {
           billing_interval?: string | null;
           created_at?: string;
           updated_at?: string;
+          livemode?: boolean | null;
         };
         Relationships: [
           {
@@ -1301,6 +1310,7 @@ export type Database = {
       archive_nutrition_plan: { Args: { p_plan: string }; Returns: undefined };
       archive_training_plan: { Args: { p_plan: string }; Returns: undefined };
       bootstrap_admin: { Args: { p_email: string }; Returns: string };
+      can_see_profile: { Args: { p_profile: string }; Returns: boolean };
       can_send_private_message: { Args: { p_conversation: string }; Returns: boolean };
       can_use_community: { Args: never; Returns: boolean };
       check_rate_limit: { Args: { p_key: string; p_max: number; p_window_seconds: number }; Returns: boolean };

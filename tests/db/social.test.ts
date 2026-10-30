@@ -385,12 +385,11 @@ describe("reports", () => {
     await expectError(report(jens, "profile", ole, "   "), /hvorfor/);
   });
 
-  it("admins read all reports; members only their own", async () => {
+  it("admins read all reports; members cannot read reports, not even their own", async () => {
     await report(outsider, "profile", ole, "Falsk profil");
     const all = await rowsAs(admin, "select reporter_id from public.reports");
     expect(new Set(all.map((r) => r.reporter_id))).toEqual(new Set([jens, outsider]));
-    const own = await rowsAs(outsider, "select reporter_id, snapshot from public.reports");
-    expect(own).toEqual([{ reporter_id: outsider, snapshot: "Ole Olsen" }]);
+    expect(await rowsAs(outsider, "select reporter_id, snapshot from public.reports")).toEqual([]);
     expect(await rowsAs(ole, "select id from public.reports")).toEqual([]);
   });
 

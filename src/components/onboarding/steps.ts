@@ -163,12 +163,13 @@ export function validateFields(schema: z.ZodObject, fields: FieldMap, input: Ste
   return { ok: true, data, skipped };
 }
 
-/** Health text may only be saved with consent. Checked in every mode. */
+/** Health text and the answer "ja" may only be saved with consent. Checked in every mode. */
 function consentError(input: StepValues): string | undefined {
-  // Only the consent rule matters here, so a valid placeholder answer is used
-  // for has_limitations to make sure the refinement is evaluated.
+  // Only the consent rules matter here. A missing or unknown answer is replaced
+  // by a valid placeholder, so the refinements are always evaluated.
+  const answer = LIMITATION_OPTIONS.find((o) => o.value === input.has_limitations)?.value ?? LIMITATION_OPTIONS[0].value;
   const parsed = healthSchema.safeParse({
-    has_limitations: LIMITATION_OPTIONS[0].value,
+    has_limitations: answer,
     health_info: input.health_info,
     health_consent: input.health_consent === true,
   });

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { fail, type ActionResult } from "@/lib/action-result";
 import { requireViewer } from "@/lib/auth";
-import { createMembershipCheckout } from "@/lib/payments/checkout";
+import { createMembershipCheckout, type CheckoutStart } from "@/lib/payments/checkout";
 import { loadCheckoutContext } from "@/lib/payments/checkout-context";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getStripe } from "@/lib/stripe/client";
@@ -43,13 +43,15 @@ export async function startMembershipCheckout(_prev: ActionResult, formData: For
     return fail("Du har prøvet mange gange på kort tid. Vent lidt, og prøv igen.");
   }
 
-  let url: string | null = null;
+  let start: CheckoutStart;
   try {
-    url = await createMembershipCheckout(stripe, { userId: viewer.userId, email: viewer.email }, product);
+    start = await createMembershipCheckout(stripe, { userId: viewer.userId, email: viewer.email }, product);
   } catch (error) {
     console.error("[checkout] medlemskab:", describeStripeError(error));
     return fail(checkoutErrorMessage(error));
   }
-  if (!url) return fail(CHECKOUT_FAILED);
-  redirect(url);
+  // E.g. a membership that already runs in Stripe, or an earlier payment that is being confirmed.
+  if ("refused" in start) return fail(start.refused);
+  if (!start.url) return fail(CHECKOUT_FAILED);
+  redirect(start.url);
 }

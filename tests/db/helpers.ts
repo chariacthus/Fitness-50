@@ -3,6 +3,11 @@
 // Statements run as `postgres` (the database owner) unless wrapped in
 // asUser / asAnon / asService, which switch to the Supabase API roles the way
 // PostgREST does: `set local role …` plus `request.jwt.claims`.
+import EmbeddedPostgres from "embedded-postgres";
+import { chmodSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { expect } from "vitest";
 import { startDatabase } from "./harness.mjs";
 
@@ -26,6 +31,57 @@ export async function teardownDatabase() {
 function client(): Client {
   if (!db) throw new Error("setupDatabase() must run in beforeAll first");
   return db.client;
+}
+
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+
+/** Contents of a file in the repository, e.g. "supabase/patches/….sql". */
+export function repoFile(path: string) {
+  return readFileSync(join(repoRoot, path), "utf8");
+}
+
+/**
+ * A second, separate throw-away Postgres built from the Supabase shim plus only
+ * the given SQL files (paths relative to the repository root, applied in
+ * order). Used to test a patch against a database created with the earlier
+ * migrations. The caller stops it with stop(). The sql/asUser helpers keep
+ * using the main test database.
+ */
+export async function startDatabaseFrom(files: string[]): Promise<TestDb> {
+  const dir = mkdtempSync(join(tmpdir(), "staerk50-pg-"));
+  chmodSync(dir, 0o777); // Postgres refuses to run as root (see harness.mjs).
+  const pg = new EmbeddedPostgres({
+    databaseDir: join(dir, "data"),
+    user: "postgres",
+    password: "postgres",
+    port: 55000 + Math.floor(Math.random() * 4000),
+    persistent: false,
+    onLog: () => {},
+    onError: () => {},
+  });
+  await pg.initialise();
+  await pg.start();
+  const pgClient = pg.getPgClient();
+  await pgClient.connect();
+  const stop = async () => {
+    await pgClient.end().catch(() => {});
+    await pg.stop().catch(() => {});
+    rmSync(dir, { recursive: true, force: true });
+  };
+  try {
+    await pgClient.query(repoFile("tests/db/supabase-shim.sql"));
+    for (const file of files) {
+      try {
+        await pgClient.query(repoFile(file));
+      } catch (error) {
+        throw new Error(`${file} failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  } catch (error) {
+    await stop();
+    throw error;
+  }
+  return { client: pgClient as unknown as Client, stop };
 }
 
 /** Runs a statement as the database owner (bypasses RLS). Returns the rows. */

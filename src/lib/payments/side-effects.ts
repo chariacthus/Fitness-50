@@ -156,3 +156,20 @@ export async function onNutritionPurchased(admin: AdminClient, userId: string) {
     }),
   );
 }
+
+/**
+ * The member paid for a nutrition plan he already had (e.g. two payment pages
+ * open at once). The welcome steps are not repeated; the administrators are
+ * told, so the extra payment can be refunded.
+ */
+export async function onDuplicateNutritionPurchase(admin: AdminClient, userId: string) {
+  const name = await memberName(admin, userId);
+  await attempt("notify admins duplicate nutrition", () =>
+    notifyAdmins({
+      type: "payment",
+      title: "Kostplanen er betalt to gange",
+      body: `${name} har betalt for kostplanen, men havde den allerede. Refunder den ekstra betaling under Betalinger.`,
+      link: "/admin/betalinger",
+    }),
+  );
+}

@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CHECK_FIELDS_MESSAGE, NOT_ADMIN_MESSAGE, failForm, isUuid, readText, readValues, type FormState } from "@/lib/admin/forms";
 import { moderateMessageSchema, resolveReportSchema } from "@/lib/admin/schemas";
 import { applyCommunitySuspension } from "@/lib/admin/suspension";
+import { broadcastMessageHidden } from "@/lib/community/moderation-server";
 
 function revalidateReports() {
   revalidatePath("/admin/rapporter");
@@ -44,11 +45,19 @@ export async function moderateMessage(_prev: FormState, formData: FormData): Pro
   });
   if (error) return failForm(dbErrorMessage(error), undefined, readValues(formData, ["reason"]));
 
+  // Members who have the chat open never get the realtime UPDATE for a row they
+  // may no longer read, so tell their chats directly. A failed broadcast does not
+  // undo the hide – it only means they see the message until they reload.
+  const broadcastOk = hide ? await broadcastMessageHidden(message_id) : true;
+
   revalidateReports();
   revalidatePath("/faellesskab");
+  if (!hide) return { ok: true, message: "Beskeden er synlig i fællesskabet igen." };
   return {
     ok: true,
-    message: hide ? "Beskeden er skjult. Medlemmerne kan ikke længere se den i fællesskabet." : "Beskeden er synlig i fællesskabet igen.",
+    message: broadcastOk
+      ? "Beskeden er skjult. Medlemmerne kan ikke længere se den i fællesskabet."
+      : "Beskeden er skjult i fællesskabet. Medlemmer, der har fællesskabet åbent lige nu, kan dog se den, indtil de genindlæser siden.",
   };
 }
 

@@ -38,6 +38,16 @@ const upload = (userId: string, bucket: string, name: string) =>
 const canSee = async (userId: string, bucket: string, name: string) =>
   (await rowsAs(userId, "select 1 from storage.objects where bucket_id = $1 and name = $2", [bucket, name])).length === 1;
 const ownerFile = (bucket: string, name: string) => sql("insert into storage.objects (bucket_id, name) values ($1, $2)", [bucket, name]);
+// Members only see announcement files attached to a published announcement.
+async function attachToPublishedAnnouncement(name: string) {
+  const announcement = (
+    await sql<{ id: string }>("insert into public.announcements (title, status, published_at) values ('Opslag', 'published', now() - interval '1 hour') returning id")
+  )[0].id;
+  const media = (
+    await sql<{ id: string }>("insert into public.media (bucket, path, kind, mime_type) values ('announcements', $1, 'image', 'image/jpeg') returning id", [name])
+  )[0].id;
+  await sql("insert into public.announcement_media (announcement_id, media_id) values ($1, $2)", [announcement, media]);
+}
 
 describe("avatars", () => {
   it("a user uploads into his own folder only", async () => {
@@ -78,6 +88,9 @@ describe("community images", () => {
   });
 
   it("are readable with community access only", async () => {
+    // Other members only see images of visible messages.
+    expect(await canSee(other, "community", `${member}/billede.jpg`)).toBe(false);
+    await sql("insert into public.community_messages (author_id, body, image_path) values ($1, 'Billede', $2)", [member, `${member}/billede.jpg`]);
     expect(await canSee(other, "community", `${member}/billede.jpg`)).toBe(true);
     expect(await canSee(admin, "community", `${member}/billede.jpg`)).toBe(true);
     expect(await canSee(outsider, "community", `${member}/billede.jpg`)).toBe(false);
@@ -101,6 +114,7 @@ for (const bucket of ["announcements", "training-media"]) {
     });
 
     it("files are readable for entitled members only", async () => {
+      if (bucket === "announcements") await attachToPublishedAnnouncement("opslag/video.mp4");
       expect(await canSee(member, bucket, "opslag/video.mp4")).toBe(true);
       expect(await canSee(suspended, bucket, "opslag/video.mp4")).toBe(true);
       expect(await canSee(outsider, bucket, "opslag/video.mp4")).toBe(false);
@@ -136,6 +150,7 @@ describe("site bucket (public marketing images)", () => {
 describe("files uploaded by the server", () => {
   it("are still protected by the read policies", async () => {
     await ownerFile("announcements", "server/billede.jpg");
+    await attachToPublishedAnnouncement("server/billede.jpg");
     expect(await canSee(outsider, "announcements", "server/billede.jpg")).toBe(false);
     expect(await canSee(member, "announcements", "server/billede.jpg")).toBe(true);
   });

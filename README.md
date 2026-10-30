@@ -81,6 +81,7 @@ to run twice and never delete data.
 | Patch | What it does |
 | --- | --- |
 | `2026-10-30-security-fixes.sql` | Security fixes found by the database tests (RPC permissions for visitors, membership check without login, server-side message timestamps, admin access to replace site images) + privacy functions for Min profil |
+| `2026-10-31-review-fixes.sql` | Fixes from the independent security review: Stripe test/live separation, narrower profile visibility, community/announcement file access, report privacy, onboarding and data-request abuse limits, deletion claim |
 
 To start over completely instead, run `supabase/reset.sql` and then
 `supabase/setup.sql`. The reset removes all app tables, functions and policies,
@@ -193,7 +194,7 @@ Supabase stand-in (`tests/db/supabase-shim.sql`) plus all migrations, and
 check the Row Level Security rules as visitor, member, other member and admin.
 No Supabase project or Docker is needed.
 
-Current status: 36 test files, 545 tests, all passing (`npm test`).
+Current status: 42 test files, 637 tests, all passing (`npm test`).
 
 After changing a migration, regenerate the TypeScript database types:
 

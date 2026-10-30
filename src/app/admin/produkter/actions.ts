@@ -6,6 +6,7 @@ import { dbErrorMessage, fail, ok, zodFieldErrors, type ActionResult } from "@/l
 import { getAdminOrNull } from "@/lib/auth";
 import { parseKronerToOre } from "@/lib/payments/money";
 import { getStripe } from "@/lib/stripe/client";
+import { isStripeTestMode, serverEnv } from "@/lib/server-env";
 import { adminStripeErrorMessage, describeStripeError } from "@/lib/stripe/errors";
 import { syncProductWithStripe } from "@/lib/stripe/product-sync";
 import { getCheckoutReadiness } from "@/lib/stripe/readiness";
@@ -224,9 +225,17 @@ export async function setCheckoutEnabled(_prev: ActionResult, formData: FormData
     }
   }
 
+  // Record which Stripe mode the server runs in, so subscriptions/purchases made
+  // in the other mode (e.g. test purchases before go-live) stop granting access
+  // at once instead of only after the first webhook in the new mode.
+  const stripeLivemode = serverEnv.stripeSecretKey ? !isStripeTestMode() : null;
   const { data, error } = await supabase
     .from("admin_settings")
-    .update({ checkout_enabled: enabled, updated_by: viewer.userId })
+    .update({
+      checkout_enabled: enabled,
+      updated_by: viewer.userId,
+      ...(stripeLivemode === null ? {} : { stripe_livemode: stripeLivemode }),
+    })
     .eq("id", 1)
     .select("checkout_enabled")
     .maybeSingle();

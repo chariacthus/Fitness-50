@@ -267,6 +267,8 @@ describe("data requests", () => {
   });
 
   it("a member cannot mark his request completed, but can cancel it once", async () => {
+    // Only one pending request per type: close the one from the first test.
+    await sql("update public.data_requests set status = 'canceled' where user_id = $1 and status = 'pending'", [requester]);
     const id = await insertRequest(requester);
     await expectDenied(asUser(requester, (c) => c.query("update public.data_requests set status = 'completed' where id = $1", [id])), /annullere/);
     await asUser(requester, (c) => c.query("update public.data_requests set status = 'canceled' where id = $1", [id]));

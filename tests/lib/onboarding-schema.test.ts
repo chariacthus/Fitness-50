@@ -91,7 +91,16 @@ describe("step schemas reject invalid input with Danish messages", () => {
     expect(errorFor(basicSchema, { ...validBasic, contact_preference: "brevdue" }, "contact_preference")).toBe(
       "Vælg hvordan Christian bedst kontakter dig",
     );
-    expect(errorFor(basicSchema, { ...validBasic, phone: "1".repeat(41) }, "phone")).toBe("Højst 40 tegn");
+    expect(errorFor(basicSchema, { ...validBasic, phone: "1".repeat(41) }, "phone")).toBe("Telefonnummeret er for langt.");
+  });
+
+  it("basic: the phone follows the same rule as on /min-profil", () => {
+    const phoneMessage = "Skriv et telefonnummer med cifre, fx 12 34 56 78.";
+    expect(errorFor(basicSchema, { ...validBasic, phone: "1234" }, "phone")).toBe(phoneMessage);
+    expect(errorFor(basicSchema, { ...validBasic, phone: "20 30 40 50 (arbejde)" }, "phone")).toBe(phoneMessage);
+    expect(basicSchema.parse({ ...validBasic, phone: " +45 12 34 56 78 " }).phone).toBe("+45 12 34 56 78");
+    expect(basicSchema.parse({ ...validBasic, phone: "" }).phone).toBe("");
+    expect(basicSchema.parse({ ...validBasic, phone: undefined }).phone).toBeUndefined();
   });
 
   it("goals", () => {
@@ -137,7 +146,14 @@ describe("health consent", () => {
     expect(parsed).toEqual({ has_limitations: "ja", health_info: "Dårligt knæ", health_consent: true });
   });
 
-  it("does not require consent when nothing (or only spaces) is written", () => {
+  it("requires consent for the answer 'ja', also without a description", () => {
+    const jaMessage = "Har du svaret ja, skal du give samtykke. Vil du ikke det, så vælg »Det vil jeg helst ikke skrive her«.";
+    expect(errorFor(healthSchema, { has_limitations: "ja", health_info: undefined, health_consent: false }, "health_consent")).toBe(jaMessage);
+    expect(errorFor(healthSchema, { has_limitations: "ja" }, "health_consent")).toBe(jaMessage);
+    expect(healthSchema.safeParse({ has_limitations: "ja", health_info: "", health_consent: true }).success).toBe(true);
+  });
+
+  it("does not require consent when nothing (or only spaces) is written and the answer is not 'ja'", () => {
     expect(healthSchema.safeParse({ has_limitations: "vil_ikke_oplyse", health_info: "", health_consent: false }).success).toBe(true);
     expect(healthSchema.safeParse({ has_limitations: "nej", health_info: "   " }).success).toBe(true);
   });

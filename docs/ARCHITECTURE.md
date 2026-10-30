@@ -13,7 +13,7 @@ Supabase project, Stripe for payments.
 | Auth | Supabase Auth (email + password, email verification, password reset) |
 | Database | Supabase Postgres with Row Level Security on every table |
 | Files | Supabase Storage, private buckets + signed URLs (`site` bucket is public) |
-| Realtime | Supabase Realtime `postgres_changes` (honours RLS) |
+| Realtime | Supabase Realtime `postgres_changes` (honours RLS); one broadcast channel `faellesskab-moderation` tells open chats that a message was hidden – clients re-check the id with an RLS query before removing it |
 | Payments | Stripe Checkout + Billing (cards). MobilePay via Stripe only for one-time purchases |
 | Email | Resend (optional). Auth emails are sent by Supabase |
 | Validation | zod 4 |
@@ -49,6 +49,13 @@ All access decisions are made in the database:
   and `is_entitled()` are granted to anon. `tests/db/visitors.test.ts` fails and
   names any function that breaks this.
 - Message `created_at` is always set by the server (trigger), never the client.
+- Stripe test/live separation: `subscriptions.livemode` / `purchases.livemode`
+  are written by the webhook; `admin_settings.stripe_livemode` is set by every
+  verified webhook event and when an admin opens checkout. Rows from the other
+  mode never grant access (test purchases stop counting after go-live).
+- Profile rows are visible to members only through `can_see_profile()` (own,
+  coach, admins, and – for entitled members – entitled members, visible
+  community authors and conversation partners).
 
 Hiding a button is never the protection – the database policy is.
 

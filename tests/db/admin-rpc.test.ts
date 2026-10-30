@@ -62,8 +62,8 @@ beforeAll(async () => {
   }
 
   // Reports: one open, one resolved.
-  await valueAs(u.active, "select public.report_content('profile', $1, 'Spam')", [u.none]);
-  const resolved = await valueAs<string>(u.grace, "select public.report_content('profile', $1, 'Spam')", [u.none]);
+  await valueAs(u.active, "select public.report_content('profile', $1, 'Spam')", [u.canceling]);
+  const resolved = await valueAs<string>(u.grace, "select public.report_content('profile', $1, 'Spam')", [u.canceling]);
   await asUser(admin, (c) => c.query("select public.resolve_report($1, 'dismissed')", [resolved]));
 
   // Data requests: one pending, one canceled.

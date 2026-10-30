@@ -96,6 +96,7 @@ export default async function DataRequestsPage({ searchParams }: { searchParams:
                             {handler ? ` af ${handler}` : ""}
                           </p>
                         ) : null}
+                        {pending && handler ? <p className="text-ink-soft">Sletningen er sat i gang af {handler}.</p> : null}
                         {r.note ? <p className="text-ink-soft">Begrundelse: {r.note}</p> : null}
                       </div>
                       <Badge tone={status.tone}>{status.label}</Badge>
