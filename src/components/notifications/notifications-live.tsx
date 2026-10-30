@@ -15,7 +15,7 @@ export function NotificationsLive({ userId }: { userId: string }) {
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
-      .channel(`notifikationer-${userId}`)
+      .channel(`notifikationer-${userId}-${crypto.randomUUID()}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, () => {
         setMessage("Du har fået en ny notifikation. Listen er opdateret.");
         router.refresh();

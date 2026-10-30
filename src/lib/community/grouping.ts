@@ -17,14 +17,12 @@ export function dayHeading(dayKey: string, now: Date = new Date()) {
   // Noon UTC is the same calendar day in Copenhagen all year round.
   const date = new Date(`${dayKey}T12:00:00Z`);
   const sameYear = dayKey.slice(0, 4) === copenhagenDayKey(now).slice(0, 4);
-  const label = new Intl.DateTimeFormat("da-DK", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    ...(sameYear ? {} : { year: "numeric" }),
-    timeZone: TIME_ZONE,
-  }).format(date);
-  return label.charAt(0).toUpperCase() + label.slice(1);
+  // Built from parts so the result does not depend on the browser's ICU version.
+  const part = (options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat("da-DK", { ...options, timeZone: TIME_ZONE }).format(date);
+  const weekday = part({ weekday: "long" });
+  const label = `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${Number(dayKey.slice(8, 10))}. ${part({ month: "long" })}`;
+  return sameYear ? label : `${label} ${dayKey.slice(0, 4)}`;
 }
 
 export type DayGroup<T> = { key: string; label: string; items: T[] };

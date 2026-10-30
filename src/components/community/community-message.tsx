@@ -117,7 +117,7 @@ export function CommunityMessageItem({ message, author, imageUrl, quote, isOwn, 
                 </ConfirmButton>
               </span>
             ) : null}
-            {!isOwn && !system ? (
+            {!isOwn && !system && !author.isCoach ? (
               <Button variant="ghost" className={MESSAGE_ACTION_CLASS} onClick={onReport}>
                 Anmeld<span className="sr-only"> beskeden fra {author.name}</span>
               </Button>

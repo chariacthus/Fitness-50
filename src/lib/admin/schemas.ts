@@ -79,6 +79,8 @@ export const uploadedVideoSchema = z.object({
   name: z.string().max(500),
 });
 
+export type UploadedVideo = { exerciseId: string; path: string; mimeType: string; size: number; name: string };
+
 // ---- Nutrition plans ---------------------------------------------------------
 
 export const nutritionPlanMetaSchema = z.object({

@@ -15,7 +15,7 @@ import {
   type ChatAuthor,
   type CommunityMessage,
 } from "@/lib/community/types";
-import { isNearPageBottom, requestUnreadCountsRefresh, scrollBehavior } from "@/lib/messages/events";
+import { isNearViewport, requestUnreadCountsRefresh, scrollBehavior } from "@/lib/messages/events";
 import { mergeById } from "@/lib/messages/merge";
 import { newMessagesLabel, olderMessagesLabel } from "@/lib/messages/text";
 import { Alert } from "@/components/ui/alert";
@@ -149,17 +149,19 @@ export function CommunityChat({
       }
     };
 
+    // A unique topic per subscription: supabase-js would otherwise hand back a channel
+    // that is still closing (fast remounts) and the page would get no live updates.
     const channel = supabase
-      .channel("faellesskab-chat")
+      .channel(`faellesskab-${crypto.randomUUID()}`)
       .on<Tables<"community_messages">>(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "community_messages" },
         (payload) => {
           const row = toCommunityMessage(payload.new);
           if (row.hidden_at) return;
-          const stickToBottom = isNearPageBottom();
+          const stickToBottom = isNearViewport(endRef.current);
           void integrate([row]).then(() => {
-            if (stickToBottom) endRef.current?.scrollIntoView({ block: "end", behavior: scrollBehavior() });
+            if (stickToBottom) requestAnimationFrame(() => endRef.current?.scrollIntoView({ block: "nearest", behavior: scrollBehavior() }));
           });
           if (row.author_id !== viewerId) {
             announceNew();
@@ -228,7 +230,7 @@ export function CommunityChat({
       if (error || !data) return dbErrorMessage(error, "Beskeden kunne ikke sendes. Prøv igen.");
       setReplyTo(null);
       await integrate([data]);
-      endRef.current?.scrollIntoView({ block: "end", behavior: scrollBehavior() });
+      requestAnimationFrame(() => endRef.current?.scrollIntoView({ block: "nearest", behavior: scrollBehavior() }));
       setAnnouncement("Din besked er sendt.");
       return null;
     },
@@ -303,7 +305,7 @@ export function CommunityChat({
       ) : (
         groups.map((group) => (
           <section key={group.key} aria-labelledby={`dag-${group.key}`}>
-            <h3 id={`dag-${group.key}`} className="flex items-center gap-3 py-2 text-base font-semibold text-ink-soft">
+            <h3 id={`dag-${group.key}`} className="flex items-center gap-3 py-2 text-base font-semibold text-ink-soft" suppressHydrationWarning>
               <span aria-hidden="true" className="h-px flex-1 bg-line" />
               {group.label}
               <span aria-hidden="true" className="h-px flex-1 bg-line" />
@@ -344,7 +346,7 @@ export function CommunityChat({
           </section>
         ))
       )}
-      <div ref={endRef} />
+      <div ref={endRef} className="scroll-mb-32 lg:scroll-mb-8" />
 
       {actionError ? <Alert tone="danger">{actionError}</Alert> : null}
 

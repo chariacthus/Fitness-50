@@ -8,11 +8,10 @@ export function requestUnreadCountsRefresh() {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(UNREAD_COUNTS_REFRESH_EVENT));
 }
 
-/** True when the page is scrolled (almost) to the bottom. */
-export function isNearPageBottom(threshold = 240) {
-  if (typeof window === "undefined") return false;
-  const scrolled = window.scrollY + window.innerHeight;
-  return document.documentElement.scrollHeight - scrolled <= threshold;
+/** True when the element is visible or just below the visible part of the page. */
+export function isNearViewport(element: Element | null, threshold = 200) {
+  if (!element || typeof window === "undefined") return false;
+  return element.getBoundingClientRect().top <= window.innerHeight + threshold;
 }
 
 /** Smooth scrolling unless the user prefers reduced motion. */

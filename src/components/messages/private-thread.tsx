@@ -6,7 +6,7 @@ import type { Tables } from "@/lib/database.types";
 import { formatMessageTime } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 import { groupByDay } from "@/lib/community/grouping";
-import { isNearPageBottom, requestUnreadCountsRefresh, scrollBehavior } from "@/lib/messages/events";
+import { isNearViewport, requestUnreadCountsRefresh, scrollBehavior } from "@/lib/messages/events";
 import { mergeById } from "@/lib/messages/merge";
 import { MESSAGE_MAX_LENGTH, messageSnippet, newMessagesLabel, olderMessagesLabel } from "@/lib/messages/text";
 import { PRIVATE_MESSAGE_COLUMNS, THREAD_PAGE_SIZE, toPrivateMessage, type PrivateMessage } from "@/lib/messages/types";
@@ -98,13 +98,13 @@ export function PrivateThread({
     };
 
     const channel = supabase
-      .channel(`samtale-${conversationId}`)
+      .channel(`samtale-${conversationId}-${crypto.randomUUID()}`)
       .on<Tables<"private_messages">>("postgres_changes", { event: "INSERT", schema: "public", table: "private_messages", filter }, (payload) => {
         const row = toPrivateMessage(payload.new);
-        const stickToBottom = isNearPageBottom();
+        const stickToBottom = isNearViewport(endRef.current);
         setMessages((prev) => mergeById(prev, [row]));
         if (stickToBottom) {
-          requestAnimationFrame(() => endRef.current?.scrollIntoView({ block: "end", behavior: scrollBehavior() }));
+          requestAnimationFrame(() => endRef.current?.scrollIntoView({ block: "nearest", behavior: scrollBehavior() }));
         }
         if (row.sender_id !== viewerId) {
           newCount += 1;
@@ -184,7 +184,7 @@ export function PrivateThread({
     const item: Outgoing = { id: crypto.randomUUID(), body: text, created_at: new Date().toISOString(), status: "sending" };
     setOutbox((prev) => [...prev, item]);
     setBody("");
-    requestAnimationFrame(() => endRef.current?.scrollIntoView({ block: "end", behavior: scrollBehavior() }));
+    requestAnimationFrame(() => endRef.current?.scrollIntoView({ block: "nearest", behavior: scrollBehavior() }));
     void deliver(item);
   }
 
@@ -277,7 +277,7 @@ export function PrivateThread({
 
       {groups.map((group) => (
         <section key={group.key} aria-labelledby={`samtale-dag-${group.key}`} className="space-y-3">
-          <h3 id={`samtale-dag-${group.key}`} className="flex items-center gap-3 py-2 text-base font-semibold text-ink-soft">
+          <h3 id={`samtale-dag-${group.key}`} className="flex items-center gap-3 py-2 text-base font-semibold text-ink-soft" suppressHydrationWarning>
             <span aria-hidden="true" className="h-px flex-1 bg-line" />
             {group.label}
             <span aria-hidden="true" className="h-px flex-1 bg-line" />
@@ -383,7 +383,7 @@ export function PrivateThread({
           ))}
         </ol>
       ) : null}
-      <div ref={endRef} />
+      <div ref={endRef} className="scroll-mb-32 lg:scroll-mb-8" />
 
       {actionError ? <Alert tone="danger">{actionError}</Alert> : null}
 
