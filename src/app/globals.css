@@ -1,0 +1,100 @@
+@import "tailwindcss";
+@import "@fontsource-variable/source-sans-3";
+
+/*
+ * Stærk50 design tokens. Light, warm and high-contrast by design (target
+ * audience 50+). The brand colour is injected from admin settings as --brand.
+ */
+:root {
+  --brand: #4f5d3a;
+}
+
+@theme inline {
+  --color-brand: var(--brand);
+  --color-brand-strong: color-mix(in srgb, var(--brand) 80%, black);
+  --color-brand-soft: color-mix(in srgb, var(--brand) 10%, white);
+  --color-brand-line: color-mix(in srgb, var(--brand) 35%, white);
+
+  --color-canvas: #faf8f4;
+  --color-surface: #ffffff;
+  --color-muted: #f2efe8;
+  --color-line: #dcd6ca;
+  --color-line-strong: #b9b2a4;
+  --color-ink: #1f2421;
+  --color-ink-soft: #474e49;
+
+  --color-danger: #a3261f;
+  --color-danger-soft: #fbeae8;
+  --color-warning: #7a4f00;
+  --color-warning-soft: #fff3d6;
+  --color-success: #2b6436;
+  --color-success-soft: #e5f1e6;
+  --color-info: #1f4f7a;
+  --color-info-soft: #e6eff7;
+  --color-focus: #1d4f91;
+
+  --font-sans: "Source Sans 3 Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+}
+
+/* 18px base: every rem-based size (text, spacing, touch targets) scales with it. */
+html {
+  font-size: 112.5%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+}
+
+/* Visible focus for keyboard users everywhere. */
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: var(--color-brand-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer components {
+  /* Long-form text (legal pages, bios, announcement bodies). */
+  .prose-text {
+    @apply max-w-prose text-ink;
+  }
+  .prose-text h2 {
+    @apply mt-10 mb-3 text-2xl font-semibold;
+  }
+  .prose-text h3 {
+    @apply mt-8 mb-2 text-xl font-semibold;
+  }
+  .prose-text p {
+    @apply my-4;
+  }
+  .prose-text ul {
+    @apply my-4 list-disc pl-6;
+  }
+  .prose-text ol {
+    @apply my-4 list-decimal pl-6;
+  }
+  .prose-text li {
+    @apply my-1;
+  }
+  .prose-text a {
+    @apply font-semibold text-brand underline underline-offset-4;
+  }
+}
