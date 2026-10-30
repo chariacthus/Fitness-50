@@ -1,9 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { dbErrorMessage, zodFieldErrors } from "@/lib/action-result";
 import { getAdminOrNull } from "@/lib/auth";
-import { siteAssetUrl } from "@/lib/settings";
+import { SITE_SETTINGS_TAG, siteAssetUrl } from "@/lib/settings";
 import { BUCKETS } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/server";
 import type { TablesUpdate } from "@/lib/database.types";
@@ -25,6 +25,7 @@ import {
 const SAVED = "Indstillingerne er gemt og vises nu på hele siden.";
 
 function revalidateEverything() {
+  updateTag(SITE_SETTINGS_TAG);
   revalidatePath("/", "layout");
 }
 

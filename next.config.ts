@@ -22,6 +22,10 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  experimental: {
+    // Keep recently visited pages in the browser so going back and forth is instant.
+    staleTimes: { dynamic: 30, static: 300 },
+  },
   images: {
     remotePatterns: [{ protocol: "https", hostname: supabaseHost }],
   },

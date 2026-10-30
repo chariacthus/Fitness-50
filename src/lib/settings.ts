@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
+import { createPublicClient } from "@/lib/public-data";
 import { publicEnv } from "@/lib/env";
 import type { Tables } from "@/lib/database.types";
 
@@ -31,12 +32,26 @@ const DEFAULT_SETTINGS: SiteSettings = {
   updated_by: null,
 };
 
+export const SITE_SETTINGS_TAG = "site-settings";
+
+// Public settings are the same for every visitor, so they are read without
+// cookies and cached for a minute (admin saves refresh them immediately).
+const loadSiteSettings = unstable_cache(
+  async (): Promise<SiteSettings | null> => {
+    const supabase = createPublicClient();
+    if (!supabase) return null;
+    const { data, error } = await supabase.from("site_settings").select("*").eq("id", 1).maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+  ["site-settings"],
+  { revalidate: 60, tags: [SITE_SETTINGS_TAG] },
+);
+
 /** Public brand/business settings. Falls back to defaults if the database is unreachable. */
 export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
   try {
-    const supabase = await createClient();
-    const { data } = await supabase.from("site_settings").select("*").eq("id", 1).maybeSingle();
-    return data ?? DEFAULT_SETTINGS;
+    return (await loadSiteSettings()) ?? DEFAULT_SETTINGS;
   } catch {
     return DEFAULT_SETTINGS;
   }
