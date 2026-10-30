@@ -50,7 +50,7 @@ export async function markNotificationRead(_prev: ActionResult, formData: FormDa
 }
 
 /** "Markér alle som læst". */
-export async function markAllNotificationsRead(_prev: ActionResult): Promise<ActionResult> {
+export async function markAllNotificationsRead(): Promise<ActionResult> {
   if (!(await getUserId())) return fail(NOT_LOGGED_IN);
 
   const supabase = await createClient();

@@ -14,7 +14,7 @@ export function safeRelativeLink(link: string | null | undefined): string | null
   if (link.length === 0 || link.length > 2000) return null;
   if (!link.startsWith("/") || link.startsWith("//")) return null;
   if (link.includes("\\")) return null;
-  // eslint-disable-next-line no-control-regex -- deliberately rejecting control characters
+  // Whitespace and control characters are never part of our links.
   if (/[\s\u0000-\u001f\u007f]/.test(link)) return null;
 
   let url: URL;
