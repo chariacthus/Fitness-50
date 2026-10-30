@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { getSiteSettings } from "@/lib/settings";
 import { publicEnv } from "@/lib/env";
+import { RippleEffect } from "@/components/ui/ripple";
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
@@ -32,6 +33,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           Gå til indhold
         </a>
         {children}
+        <RippleEffect />
       </body>
     </html>
   );

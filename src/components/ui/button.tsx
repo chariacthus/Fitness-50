@@ -6,15 +6,15 @@ export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "inve
 export type ButtonSize = "md" | "lg" | "sm";
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-md font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 text-center leading-tight";
+  "btn-motion inline-flex items-center justify-center gap-2 rounded-md font-semibold disabled:cursor-not-allowed disabled:opacity-60 text-center leading-tight";
 
 const variants: Record<ButtonVariant, string> = {
-  primary: "bg-brand text-white hover:bg-brand-strong active:bg-brand-strong",
+  primary: "btn-shine bg-brand text-white hover:bg-brand-strong active:bg-brand-strong",
   secondary: "border-2 border-brand bg-surface text-brand hover:bg-brand-soft",
   ghost: "text-ink hover:bg-muted underline-offset-4",
   danger: "bg-danger text-white hover:bg-[color-mix(in_srgb,var(--color-danger)_85%,black)]",
   // For dark (night) sections.
-  inverse: "bg-on-night text-ink hover:bg-white",
+  inverse: "btn-shine bg-on-night text-ink hover:bg-white",
   inverseOutline: "border-2 border-on-night/70 text-on-night hover:bg-white/10",
 };
 
@@ -32,11 +32,11 @@ export function buttonClasses(variant: ButtonVariant = "primary", size: ButtonSi
 type ButtonProps = ComponentProps<"button"> & { variant?: ButtonVariant; size?: ButtonSize };
 
 export function Button({ variant = "primary", size = "md", className, type = "button", ...props }: ButtonProps) {
-  return <button type={type} className={buttonClasses(variant, size, className)} {...props} />;
+  return <button type={type} data-ripple="" className={buttonClasses(variant, size, className)} {...props} />;
 }
 
 type ButtonLinkProps = ComponentProps<typeof Link> & { variant?: ButtonVariant; size?: ButtonSize };
 
 export function ButtonLink({ variant = "primary", size = "md", className, ...props }: ButtonLinkProps) {
-  return <Link className={buttonClasses(variant, size, className)} {...props} />;
+  return <Link data-ripple="" className={buttonClasses(variant, size, className)} {...props} />;
 }

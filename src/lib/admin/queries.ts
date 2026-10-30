@@ -26,12 +26,16 @@ export async function loadMembersWithPublishedNutrition(supabase: Client): Promi
   return new Set((data ?? []).map((p) => p.member_id));
 }
 
-/** Upload limits from admin settings (in bytes). */
+// Bucket limits set in supabase/migrations/20261030000002_storage.sql.
+const MB = 1024 * 1024;
+const SITE_BUCKET_MAX_BYTES = 10 * MB;
+const TRAINING_MEDIA_MAX_BYTES = 50 * MB; // also the Supabase Free plan maximum per file
+
+/** Upload limits in bytes: the administrator's setting, never above what the bucket accepts. */
 export async function loadUploadLimits(supabase: Client) {
   const { data } = await supabase.from("admin_settings").select("max_image_mb, max_video_mb").eq("id", 1).maybeSingle();
-  const MB = 1024 * 1024;
   return {
-    imageBytes: (data?.max_image_mb ?? 10) * MB,
-    videoBytes: (data?.max_video_mb ?? 50) * MB,
+    siteImageBytes: Math.min((data?.max_image_mb ?? 10) * MB, SITE_BUCKET_MAX_BYTES),
+    trainingVideoBytes: Math.min((data?.max_video_mb ?? 50) * MB, TRAINING_MEDIA_MAX_BYTES),
   };
 }

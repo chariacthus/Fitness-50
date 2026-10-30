@@ -53,8 +53,8 @@ export function ExerciseVideo({
       )}
 
       <FileUpload
-        label={current ? "Upload en anden video" : "Upload en video"}
-        hint={`MP4, WebM eller MOV. Højst ${formatFileSize(maxBytes)} (Supabase Free-planen tillader højst 50 MB pr. fil).`}
+        label={`${current ? "Upload en anden video" : "Upload en video"} til “${exerciseName}”`}
+        hint={`MP4, WebM eller MOV. Højst ${formatFileSize(maxBytes)} – Supabase Free-planen tillader højst 50 MB pr. fil.`}
         bucket={BUCKETS.trainingMedia}
         folder="exercises"
         accept="video"

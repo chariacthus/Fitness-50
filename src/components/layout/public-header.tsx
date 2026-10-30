@@ -19,7 +19,7 @@ export async function PublicHeader() {
     item.href === "/om-christian" ? { ...item, label: `Om ${settings.coach_name}` } : item,
   );
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/85">
+    <header style={{ viewTransitionName: "site-header" }} className="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/85">
       <Container className="flex min-h-20 items-center justify-between gap-4">
         <Logo name={settings.business_name} logoPath={settings.logo_path} />
 
@@ -48,8 +48,15 @@ export async function PublicHeader() {
           )}
         </div>
 
+        <div className="flex items-center gap-2 lg:hidden">
+          <Link
+            href={userId ? "/hjem" : "/log-ind"}
+            className="inline-flex min-h-12 items-center rounded-md px-3 font-semibold text-brand hover:bg-muted"
+          >
+            {userId ? "Min side" : "Log ind"}
+          </Link>
         {/* Mobile menu: native disclosure works without JavaScript and with keyboard. */}
-        <details className="group lg:hidden">
+        <details className="group">
           <summary className="inline-flex min-h-12 cursor-pointer list-none items-center gap-2 rounded-md border-2 border-line px-4 font-semibold">
             Menu
             <span aria-hidden="true" className="transition-transform group-open:rotate-180">▾</span>
@@ -84,6 +91,7 @@ export async function PublicHeader() {
             </div>
           </div>
         </details>
+        </div>
       </Container>
     </header>
   );

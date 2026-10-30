@@ -1326,6 +1326,7 @@ export type Database = {
       resolve_report: { Args: { p_report: string; p_status: string; p_note?: string }; Returns: undefined };
       set_community_suspension: { Args: { p_user: string; p_suspended: boolean; p_reason?: string }; Returns: undefined };
       unread_counts: { Args: never; Returns: Json };
+      withdraw_health_consent: { Args: never; Returns: boolean };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

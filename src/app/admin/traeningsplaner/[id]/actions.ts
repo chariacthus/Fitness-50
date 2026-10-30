@@ -333,7 +333,7 @@ export async function attachUploadedVideo(input: UploadedVideo): Promise<FormSta
   const size = typeof meta.size === "number" ? meta.size : parsed.data.size;
   const storedType = typeof meta.mimetype === "string" ? meta.mimetype : mimeType;
   const limits = await loadUploadLimits(ctx.supabase);
-  if (!isAllowedVideo(storedType) || size > limits.videoBytes) {
+  if (!isAllowedVideo(storedType) || size > limits.trainingVideoBytes) {
     await discardUpload(ctx.supabase, path);
     return failForm("Videoen er for stor eller har et format, der ikke er tilladt.");
   }

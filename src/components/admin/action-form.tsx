@@ -137,6 +137,12 @@ export function FormCheckbox({ name, defaultChecked, ...props }: WithName<Compon
   );
 }
 
+/** For custom fields inside an <ActionForm>: unique id, error and the value submitted last (after a failed attempt). */
+export function useFormField(name: string) {
+  const ctx = useFormContext();
+  return { id: `${ctx.prefix}-${name}`, error: fieldError(ctx, name), submitted: submittedValue(ctx, name) };
+}
+
 /** Error text for a field that is not a plain input (e.g. a hidden id). */
 export function FormFieldError({ name }: { name: string }) {
   const ctx = useFormContext();

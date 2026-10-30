@@ -238,7 +238,7 @@ export default async function TrainingPlanEditorPage({
     value: m.id,
     label: `${m.title?.trim() || "Video uden navn"} (uploadet ${formatShortDate(m.created_at)})`,
   }));
-  const maxVideoBytes = limits.videoBytes;
+  const maxVideoBytes = limits.trainingVideoBytes;
   const kopi = Boolean(firstParam(query.kopi));
 
   return (

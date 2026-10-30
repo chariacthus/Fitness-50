@@ -43,7 +43,8 @@ export default async function AboutCoachPage() {
             path={settings.coach_photo_path}
             alt={`Foto af ${coach}`}
             placeholderLabel={`Portrætfoto af ${coach}`}
-            className="rounded-2xl bg-surface lg:order-first lg:aspect-[4/5]"
+            monogram={coach}
+            className="rounded-2xl lg:order-first lg:aspect-[4/5]"
             priority
           />
         </Container>
