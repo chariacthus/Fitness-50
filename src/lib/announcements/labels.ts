@@ -30,7 +30,7 @@ export function publishOutcomeMessage({
   if (publishedAt && isInFuture(publishedAt, now)) {
     const base = `Opslaget er udgivet og bliver synligt for medlemmerne ${formatDateTime(publishedAt)}.`;
     return isImportant && !alreadyNotified
-      ? `${base} Bemærk: Der sendes ikke notifikation, når tidspunktet kommer. Skal medlemmerne have besked, så tøm feltet “Udgivelsestidspunkt”, og udgiv det nu.`
+      ? `${base} Bemærk: Der sendes ikke notifikation, når tidspunktet kommer. Skal medlemmerne have besked, så afpublicér opslaget, tøm feltet “Udgivelsestidspunkt”, og udgiv det igen.`
       : base;
   }
   if (notified > 0) {
